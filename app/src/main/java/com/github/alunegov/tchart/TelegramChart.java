@@ -1,20 +1,50 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 
-public class TelegramChart extends View {
-    public TelegramChart(Context ctx, AttributeSet attrs) {
-        super(ctx, attrs);
+import android.widget.TextView;
+import org.jetbrains.annotations.NotNull;
+
+public class TelegramChart extends LinearLayout {
+    private TextView titleView;
+    private MainChart mainChartView;
+    private PreviewChart previewChartView;
+    private ListView linesNamesList;
+
+    public TelegramChart(Context context, AttributeSet attrs) {
+        super(context, attrs);
+
+        setOrientation(VERTICAL);
+
+        titleView = new TextView(context, attrs);
+        addView(titleView);
+
+        mainChartView = new MainChart(context, attrs);
+        addView(mainChartView);
+
+        previewChartView = new PreviewChart(context, attrs);
+        previewChartView.setChangeListener(new PreviewChart.ChangeListener() {
+            @Override
+            public void onZoneChanged(float zoneLeftValue, float zoneRightValue) {
+                mainChartView.setXRange(zoneLeftValue, zoneRightValue);
+            }
+        });
+        addView(previewChartView);
+
+        //linesNamesList = new ListView(context, attrs);
+        //addView(linesNamesList);
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    public void setTitle(@NotNull String title) {
+        titleView.setText(title);
+    }
 
-        canvas.drawLine(20, 20, 40, 40, new Paint());
+    public void setInputData(@NotNull ChartInputData inputData) {
+        mainChartView.setInputData(inputData);
+        previewChartView.setInputData(inputData);
+        //linesNamesList.setAdapter();
     }
 }

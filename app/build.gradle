@@ -2,11 +2,11 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "com.github.alunegov.tchart"
-        minSdkVersion 23
+        minSdkVersion 16
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -20,7 +20,16 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.3.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:23.3.0'
+    implementation 'org.jetbrains:annotations-java5:15.0'
+
+    testImplementation 'commons-io:commons-io:2.4'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.json:json:20180130'
+    testImplementation 'org.mockito:mockito-core:1.10.19'
+
+    debugImplementation "com.github.brianPlummer:tinydancer:0.1.2"
+    releaseImplementation "com.github.brianPlummer:tinydancer-noop:0.1.2"
+    testImplementation "com.github.brianPlummer:tinydancer-noop:0.1.2"
 }
