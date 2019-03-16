@@ -30,8 +30,8 @@ public class MainChart extends View {
     // настройки отрисовки вспомогательных линий (оси, курсор)
     private Paint helperLinePaint;
 
-    public MainChart(Context ctx, AttributeSet attrs) {
-        super(ctx, attrs);
+    public MainChart(Context context, AttributeSet attrs) {
+        super(context, attrs);
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {

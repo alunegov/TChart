@@ -6,6 +6,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import android.view.ViewConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public class PreviewChart extends View {
@@ -16,13 +17,16 @@ public class PreviewChart extends View {
 
     private static final int BORDER_HEIGHT = 3;
     private static final int BORDER_WIDTH = 9;
-    private static final int TOUCH_SLOPE1 = 50;
-    private static final int TOUCH_SLOPE2 = 10;
+    private static final int TOUCH_SLOP1 = 50;
+    private static final int TOUCH_SLOP2 = 10;
 
+    // Cache the touch slop from the context that created the view.
+    private int mTouchSlop;
     private ChangeListener changeListener;
     private ChartDrawData drawData;
     private MoveMode moveMode = MoveMode.NOP;
     private float moveStart;
+    private boolean isMoving = false;
     private float zoneLeftValue, zoneRightValue;
     private RectF zoneLeftBorder, zoneRightBorder;
     // настройки отрисовки линий
@@ -32,8 +36,10 @@ public class PreviewChart extends View {
     // настройки отрисовки рамки выбранного диапазона по X
     private Paint framePaint;
 
-    public PreviewChart(Context ctx, AttributeSet attrs) {
-        super(ctx, attrs);
+    public PreviewChart(Context context, AttributeSet attrs) {
+        super(context, attrs);
+
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     public void setChangeListener(@NotNull ChangeListener changeListener) {
@@ -97,9 +103,9 @@ public class PreviewChart extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, TOUCH_SLOPE1, TOUCH_SLOPE2)) {
+                if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, TOUCH_SLOP1, TOUCH_SLOP2)) {
                     moveMode = MoveMode.LEFT;
-                } else if (inTouchZone(zoneRightBorder.left, zoneRightBorder.right, x, TOUCH_SLOPE2, TOUCH_SLOPE1)) {
+                } else if (inTouchZone(zoneRightBorder.left, zoneRightBorder.right, x, TOUCH_SLOP2, TOUCH_SLOP1)) {
                     moveMode = MoveMode.RIGHT;
                 } else if (inTouchZone(zoneLeftBorder.right, zoneRightBorder.left, x, 0, 0)) {
                     moveMode = MoveMode.LEFT_AND_RIGHT;
@@ -107,79 +113,90 @@ public class PreviewChart extends View {
                     moveMode = MoveMode.NOP;
                 }
 
-                if (moveMode !=  MoveMode.NOP) {
+                if (moveMode != MoveMode.NOP) {
                     moveStart = x;
-
-                    // disallow parent (ScrollView) to intercept touch events while we're moving selection zone
-                    if (getParent() != null) {
-                        getParent().requestDisallowInterceptTouchEvent(true);
-                    }
                 }
 
                 break;
 
             case MotionEvent.ACTION_UP:
-                moveMode = MoveMode.NOP;
+                if (moveMode != MoveMode.NOP) {
+                    moveMode = MoveMode.NOP;
+                    isMoving = false;
 
-                // allow parent to intercept touch events
-                if (getParent() != null) {
-                    getParent().requestDisallowInterceptTouchEvent(false);
+                    // allow parent to intercept touch events
+                    if (getParent() != null) {
+                        getParent().requestDisallowInterceptTouchEvent(false);
+                    }
                 }
 
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                moveDelta = x - moveStart;
+                if (moveMode != MoveMode.NOP) {
+                    moveDelta = x - moveStart;
 
-                switch (moveMode) {
-                    case LEFT:
-                        newX = zoneLeftBorder.left + moveDelta;
-                        if (newX < 0) {
-                            newX = 0;
-                        } else if (newX > zoneRightBorder.left) {
-                            newX = zoneRightBorder.left;
+                    if (!isMoving) {
+                        if (Math.abs(moveDelta) > mTouchSlop) {
+                            moveStart = x;
+                            isMoving = true;
+
+                            // disallow parent (ScrollView) to intercept touch events while we're moving selection zone
+                            if (getParent() != null) {
+                                getParent().requestDisallowInterceptTouchEvent(true);
+                            }
                         }
-
-                        zoneLeftValue = drawData.pixelToX(newX);
-
-                        updateZoneLeftBorder();
-
                         break;
+                    }
 
-                    case RIGHT:
-                        newX = zoneRightBorder.right + moveDelta;
-                        if (newX < zoneLeftBorder.right) {
-                            newX = zoneLeftBorder.right;
-                        } else if (newX > getWidth()) {
-                            newX = getWidth();
-                        }
+                    switch (moveMode) {
+                        case LEFT:
+                            newX = zoneLeftBorder.left + moveDelta;
+                            if (newX < 0) {
+                                newX = 0;
+                            } else if (newX > zoneRightBorder.left) {
+                                newX = zoneRightBorder.left;
+                            }
 
-                        zoneRightValue = drawData.pixelToX(newX);
+                            zoneLeftValue = drawData.pixelToX(newX);
 
-                        updateZoneRightBorder();
+                            updateZoneLeftBorder();
 
-                        break;
+                            break;
 
-                    case LEFT_AND_RIGHT:
-                        zoneWidth = zoneRightBorder.right - zoneLeftBorder.left;
+                        case RIGHT:
+                            newX = zoneRightBorder.right + moveDelta;
+                            if (newX < zoneLeftBorder.right) {
+                                newX = zoneLeftBorder.right;
+                            } else if (newX > getWidth()) {
+                                newX = getWidth();
+                            }
 
-                        newX = zoneLeftBorder.left + moveDelta;
-                        if (newX < 0) {
-                            newX = 0;
-                        } else if ((newX + zoneWidth) > getWidth()) {
-                            newX = getWidth() - zoneWidth;
-                        }
+                            zoneRightValue = drawData.pixelToX(newX);
 
-                        zoneLeftValue = drawData.pixelToX(newX);
-                        zoneRightValue = drawData.pixelToX(newX + zoneWidth);
+                            updateZoneRightBorder();
 
-                        updateZoneLeftBorder();
-                        updateZoneRightBorder();
+                            break;
 
-                        break;
-                }
+                        case LEFT_AND_RIGHT:
+                            zoneWidth = zoneRightBorder.right - zoneLeftBorder.left;
 
-                if (moveMode !=  MoveMode.NOP) {
+                            newX = zoneLeftBorder.left + moveDelta;
+                            if (newX < 0) {
+                                newX = 0;
+                            } else if ((newX + zoneWidth) > getWidth()) {
+                                newX = getWidth() - zoneWidth;
+                            }
+
+                            zoneLeftValue = drawData.pixelToX(newX);
+                            zoneRightValue = drawData.pixelToX(newX + zoneWidth);
+
+                            updateZoneLeftBorder();
+                            updateZoneRightBorder();
+
+                            break;
+                    }
+
                     moveStart = x;
 
                     invalidate();
@@ -195,8 +212,8 @@ public class PreviewChart extends View {
         return true;
     }
 
-    private boolean inTouchZone(float left, float right, float x, float leftSlope, float rightSlope) {
-        return ((left - leftSlope) <= x) && (x <= (right + rightSlope));
+    private boolean inTouchZone(float left, float right, float x, float leftSlop, float rightSlop) {
+        return ((left - leftSlop) <= x) && (x <= (right + rightSlop));
     }
 
     private void updateZoneLeftBorder() {
