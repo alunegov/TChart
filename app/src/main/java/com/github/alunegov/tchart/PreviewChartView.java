@@ -5,11 +5,13 @@ import android.graphics.*;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-
 import android.view.ViewConfiguration;
+
+import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 
-public class PreviewChart extends View {
+public class PreviewChartView extends View {
     private static final int LINE_WIDTH = 2;
 
     private static final int FADED_COLOR = Color.argb(200, 245, 248, 249);
@@ -22,7 +24,7 @@ public class PreviewChart extends View {
 
     // Cache the touch slop from the context that created the view.
     private int mTouchSlop;
-    private ChangeListener changeListener;
+    private OnChangeListener onChangeListener;
     private ChartDrawData drawData;
     private MoveMode moveMode = MoveMode.NOP;
     private float moveStart;
@@ -36,14 +38,14 @@ public class PreviewChart extends View {
     // настройки отрисовки рамки выбранного диапазона по X
     private Paint framePaint;
 
-    public PreviewChart(Context context, AttributeSet attrs) {
+    public PreviewChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
-    public void setChangeListener(@NotNull ChangeListener changeListener) {
-        this.changeListener = changeListener;
+    public void setOnChangeListener(@NotNull OnChangeListener onChangeListener) {
+        this.onChangeListener = onChangeListener;
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
@@ -53,8 +55,8 @@ public class PreviewChart extends View {
         zoneLeftValue = inputData.XValues[inputData.XValues.length / 2];  // TODO: starting xLeft?
         zoneRightValue = inputData.XValues[inputData.XValues.length - 1];
 
-        if (changeListener != null) {
-            changeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
+        if (onChangeListener != null) {
+            onChangeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
         }
 
         // filled on first onSizeChanged
@@ -72,10 +74,14 @@ public class PreviewChart extends View {
         framePaint.setStyle(Paint.Style.FILL);
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
-                getDefaultSize(100, heightMeasureSpec));
+    public void updateLineVisibility(int lineIndex, boolean visible) {
+        if (drawData == null) {
+            return;
+        }
+
+        drawData.updateLineVisibility(lineIndex, visible);
+
+        invalidate();
     }
 
     @Override
@@ -103,12 +109,12 @@ public class PreviewChart extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, TOUCH_SLOP1, TOUCH_SLOP2)) {
+                if (inTouchZone(zoneLeftBorder.right, zoneRightBorder.left, x, -TOUCH_SLOP2, -TOUCH_SLOP2)) {
+                    moveMode = MoveMode.LEFT_AND_RIGHT;
+                } else if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, TOUCH_SLOP1, TOUCH_SLOP2)) {
                     moveMode = MoveMode.LEFT;
                 } else if (inTouchZone(zoneRightBorder.left, zoneRightBorder.right, x, TOUCH_SLOP2, TOUCH_SLOP1)) {
                     moveMode = MoveMode.RIGHT;
-                } else if (inTouchZone(zoneLeftBorder.right, zoneRightBorder.left, x, 0, 0)) {
-                    moveMode = MoveMode.LEFT_AND_RIGHT;
                 } else {
                     moveMode = MoveMode.NOP;
                 }
@@ -201,8 +207,8 @@ public class PreviewChart extends View {
 
                     invalidate();
 
-                    if (changeListener != null) {
-                        changeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
+                    if (onChangeListener != null) {
+                        onChangeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
                     }
                 }
 
@@ -232,30 +238,40 @@ public class PreviewChart extends View {
             return;
         }
 
-        drawFrame(canvas, framePaint);
-        drawLines(canvas, drawData.getLinesPaths(), linesPaints);
-        drawLinesFade(canvas, fadedPaint);
+        drawFrame(canvas);
+        drawLines(canvas);
+        drawLinesFade(canvas);
     }
 
-    private void drawLines(@NotNull Canvas canvas, @NotNull Path[] paths, @NotNull Paint[] paints) {
-        for (int j = 0; j < paths.length; j++) {
-            canvas.drawPath(paths[j], paints[j]);
+    private void drawLines(@NotNull Canvas canvas) {
+        final Path[] paths = drawData.getLinesPaths();
+        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+
+        for (int i = 0; i < paths.length; i++) {
+            if (!invisibleLinesIndexes.contains(i)) {
+                canvas.drawPath(paths[i], linesPaints[i]);
+            }
         }
     }
 
-    private void drawLinesFade(@NotNull Canvas canvas, @NotNull Paint paint) {
-        canvas.drawRect(0, 0, zoneLeftBorder.left, getHeight(), paint);  // left
-        canvas.drawRect(zoneRightBorder.right, 0, getWidth(), getHeight(), paint);  // right
+    private void drawLinesFade(@NotNull Canvas canvas) {
+        final int w = getWidth();
+        final int h = getHeight();
+
+        canvas.drawRect(0, 0, zoneLeftBorder.left, h, fadedPaint);  // left
+        canvas.drawRect(zoneRightBorder.right, 0, w, h, fadedPaint);  // right
     }
 
-    private void drawFrame(@NotNull Canvas canvas, @NotNull Paint paint) {
-        canvas.drawRect(zoneLeftBorder, paint);  // left, hor
-        canvas.drawRect(zoneRightBorder, paint);  // right, hor
-        canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, BORDER_HEIGHT, paint);  // top, vert
-        canvas.drawRect(zoneLeftBorder.right, getHeight() - BORDER_HEIGHT, zoneRightBorder.left, getHeight(), paint);  // bottom, vert
+    private void drawFrame(@NotNull Canvas canvas) {
+        final int h = getHeight();
+
+        canvas.drawRect(zoneLeftBorder, framePaint);  // left, hor
+        canvas.drawRect(zoneRightBorder, framePaint);  // right, hor
+        canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, BORDER_HEIGHT, framePaint);  // top, vert
+        canvas.drawRect(zoneLeftBorder.right, h - BORDER_HEIGHT, zoneRightBorder.left, h, framePaint);  // bottom, vert
     }
 
-    public interface ChangeListener {
+    public interface OnChangeListener {
         void onZoneChanged(float zoneLeftValue, float zoneRightValue);
     }
 

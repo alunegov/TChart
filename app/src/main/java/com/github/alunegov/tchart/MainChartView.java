@@ -6,15 +6,23 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 
-public class MainChart extends View {
+public class MainChartView extends View {
     private static final int NO_CURSOR = -1;
+
+    private static final int AXIS_LINES_COUNT = 5;
 
     private static final int LINE_WIDTH = 4;
 
-    private static final int HELPER_LINE_COLOR = Color.rgb(229, 235, 239);
-    private static final int HELPER_LINE_WIDTH = 2;
+    private static final int AXIS_TEXT_COLOR = Color.rgb(152, 162, 170);
+    private static final int Y_AXIS_LINE_COLOR = Color.rgb(241, 241, 242);
+    private static final int CURSOR_LINE_COLOR = Color.rgb(229, 235, 239);
+    private static final int CURSOR_LINE_WIDTH = 2;
 
     private static final int MARKER_RADIUS = 9;
     private static final int MARKER_FILL_RADIUS = MARKER_RADIUS - LINE_WIDTH / 2;
@@ -27,10 +35,14 @@ public class MainChart extends View {
     private Paint[] linesPaints;
     // настройки отрисовки заполнения маркера курсора (чтобы получить заливку маркера цветом фона)
     private Paint linesMarkerFillPaint;
+    // настройки отрисовки надписей осей
+    private Paint axisTextPaint;
+    // настройки отрисовки линий оси Y
+    private Paint yAxisLinePaint;
     // настройки отрисовки вспомогательных линий (оси, курсор)
     private Paint helperLinePaint;
 
-    public MainChart(Context context, AttributeSet attrs) {
+    public MainChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
@@ -47,7 +59,15 @@ public class MainChart extends View {
         linesMarkerFillPaint.setColor(Color.WHITE);  // set in onDraw
         linesMarkerFillPaint.setStyle(Paint.Style.FILL);
 
-        helperLinePaint = ChartUtils.makeLinePaint(HELPER_LINE_COLOR, HELPER_LINE_WIDTH);
+        axisTextPaint = new Paint();
+        axisTextPaint.setAntiAlias(true);
+        axisTextPaint.setColor(AXIS_TEXT_COLOR);
+        axisTextPaint.setStyle(Paint.Style.FILL);
+        axisTextPaint.setTextSize(30);
+
+        yAxisLinePaint = ChartUtils.makeLinePaint(Y_AXIS_LINE_COLOR, 1);
+
+        helperLinePaint = ChartUtils.makeLinePaint(CURSOR_LINE_COLOR, CURSOR_LINE_WIDTH);
     }
 
     public void setXRange(float xLeftValue, float xRightValue) {
@@ -60,10 +80,14 @@ public class MainChart extends View {
         invalidate();
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
-                getDefaultSize(600, heightMeasureSpec));
+    public void updateLineVisibility(int lineIndex, boolean visible) {
+        if (drawData == null) {
+            return;
+        }
+
+        drawData.updateLineVisibility(lineIndex, visible);
+
+        invalidate();
     }
 
     @Override
@@ -110,31 +134,63 @@ public class MainChart extends View {
             return;
         }
 
-        drawXAxis(canvas, helperLinePaint);
-        drawYAxis(canvas, helperLinePaint);
-        drawLines(canvas, drawData.getLinesPaths(), linesPaints);
+        drawXAxis(canvas);
+        drawYAxis(canvas);
+        drawLines(canvas);
         drawCursor(canvas);
     }
 
-    private void drawXAxis(@NotNull Canvas canvas, Paint paint) {
+    private void drawXAxis(@NotNull Canvas canvas) {
+        final float xSwing = Math.abs(drawData.getXRightValue() - drawData.getXLeftValue());
 
-    }
+        long stepValue = (long) xSwing / 4;
+        //stepValue = 50;
 
-    private void drawYAxis(@NotNull Canvas canvas, Paint paint) {
+        final int stepPixel =  (int) drawData.xToPixel(stepValue);
+        if (stepPixel == 0) {
+            return;
+        }
 
-        for (int i = 0; i < 5; i++) {
-            final float y = getHeight() - 100 * i;
+        int i = 0;
+        for (int x = 0; x < getWidth(); x = x + stepPixel) {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd");
+            final String s = sdf.format(new Date(i * stepValue * 1000L));
+            canvas.drawText(s, x, getHeight(), axisTextPaint);
 
-            canvas.drawLine(0, y, getWidth(), y, paint);
-
-            final String s = String.valueOf(i);
-            canvas.drawText(s, 0, y - 20, paint);
+            i++;
         }
     }
 
-    private void drawLines(@NotNull Canvas canvas, @NotNull Path[] paths, @NotNull Paint[] paints) {
+    private void drawYAxis(@NotNull Canvas canvas) {
+        final float ySwing = Math.abs(drawData.getYMax() - drawData.getYMin());
+
+        int stepValue = (int) ySwing / AXIS_LINES_COUNT;
+        //stepValue = 50;
+
+        final int stepPixel =  (int) drawData.pixelToY(stepValue);
+        if (stepPixel == 0) {
+            return;
+        }
+
+        int i = 0;
+        for (int y = 0; y < getHeight(); y = y + stepPixel) {
+            canvas.drawLine(0, getHeight() - y, getWidth(), getHeight() - y, yAxisLinePaint);
+
+            final String s = String.valueOf(i * stepValue);
+            canvas.drawText(s, 0, getHeight() - y - 20, axisTextPaint);
+
+            i++;
+        }
+    }
+
+    private void drawLines(@NotNull Canvas canvas) {
+        final Path[] paths = drawData.getLinesPaths();
+        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+
         for (int i = 0; i < paths.length; i++) {
-            canvas.drawPath(paths[i], paints[i]);
+            if (!invisibleLinesIndexes.contains(i)) {
+                canvas.drawPath(paths[i], linesPaints[i]);
+            }
         }
     }
 

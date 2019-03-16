@@ -3,6 +3,9 @@ package com.github.alunegov.tchart;
 import android.graphics.Path;
 import android.graphics.RectF;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 
 // Данные графика, используемые при отрисовке
@@ -10,9 +13,7 @@ public class ChartDrawData {
     // исходные данные графика
     private ChartInputData inputData;
     // режим нижней границы Y
-    private YMinMode yMinMode = YMinMode.RANGE;
-    // минимальное значение Y по всему диапазону X по всем сигналам (используется в режиме YMinMode.FULL)
-    private int yMinFull;
+    private YMinMode yMinMode = YMinMode.ZERO;
     // область отображения графика
     private RectF area = new RectF();
     // флаг: область отображения графика задана
@@ -23,6 +24,7 @@ public class ChartDrawData {
     private int xLeftIndex, xRightIndex;
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
+    private Set<Integer> invisibleLinesIndexes;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
     private int yMin, yMax;
     // коэффициент пересчета значений в пиксели
@@ -33,11 +35,8 @@ public class ChartDrawData {
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
 
-        // calc yMinFull only in YMinMode.FULL mode
-        if (yMinMode == YMinMode.FULL) {
-            final int[] yMinMax = inputData.findYMinMax(0, inputData.XValues.length - 1);
-            yMinFull = yMinMax[0];
-        }
+        invisibleLinesIndexes = new HashSet<Integer>(inputData.LinesValues.length);
+
         linesPaths = new Path[inputData.LinesValues.length];
         for (int i = 0; i < linesPaths.length; i++) {
             linesPaths[i] = new Path();
@@ -47,11 +46,16 @@ public class ChartDrawData {
     public void setArea(@NotNull RectF area) {
         this.area.set(area);
         this.areaSet = true;
+
         update();
     }
 
     public float getXLeftValue() {
         return xLeftValue;
+    }
+
+    public float getXRightValue() {
+        return xRightValue;
     }
 
     public void setXRange(float xLeftValue, float xRightValue) {
@@ -78,12 +82,30 @@ public class ChartDrawData {
         update();
     }
 
+    public Set<Integer> getInvisibleLinesIndexes() {
+        return invisibleLinesIndexes;
+    }
+
+    public void updateLineVisibility(int lineIndex, boolean visible) {
+        if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
+            return;
+        }
+
+        if (visible) {
+            invisibleLinesIndexes.remove(lineIndex);
+        } else {
+            invisibleLinesIndexes.add(lineIndex);
+        }
+
+        update();
+    }
+
     public int getYMin() {
         return yMin;
     }
 
     public int getYMax() {
-        return yMin;
+        return yMax;
     }
 
     public @NotNull Path[] getLinesPaths() {
@@ -98,16 +120,14 @@ public class ChartDrawData {
             return;
         }
 
-        final int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex);
+        final int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, invisibleLinesIndexes);
 
         switch (yMinMode) {
             case RANGE:
                 yMin = yMinMax[0];
                 break;
-            case FULL:
-                yMin = yMinFull;
-                break;
             case ZERO:
+                assert yMinMax[0] >= 0;
                 yMin = 0;
                 break;
             default:
@@ -121,6 +141,12 @@ public class ChartDrawData {
 
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
+
+            // don't calc invisible lines
+            if (invisibleLinesIndexes.contains(j)) {
+                continue;
+            }
+
             linesPaths[j].moveTo(
                     xToPixel(inputData.XValues[xLeftIndex] - xLeftValue),
                     yToPixel(inputData.LinesValues[j][xLeftIndex] - yMin)
@@ -166,12 +192,14 @@ public class ChartDrawData {
         return area.bottom - y * scaleY;
     }
 
+    public float pixelToY(float py) {
+        return py * scaleY + yMin;
+    }
+
     // Режим нижней границы Y - какое значение используется для минимума по Y на графике
     public enum YMinMode {
         // использование минимума в отображаемом диапазоне X
         RANGE,
-        // использование минимума во всём диапазоне X
-        FULL,
         // нулевое значение
         ZERO,
     }

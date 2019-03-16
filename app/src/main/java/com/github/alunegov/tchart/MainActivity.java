@@ -1,16 +1,15 @@
 package com.github.alunegov.tchart;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.LinearLayout;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
-
-import org.jetbrains.annotations.NotNull;
 
 public class MainActivity extends AppCompatActivity {
     private static final String CHART_DATA_CHARSET = "UTF8";
@@ -20,15 +19,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setTitle("Statistics");
+        setTitle(getString(R.string.activity_title));
 
-        LinearLayout root = (LinearLayout)findViewById(R.id.root);
+        final LinearLayout root = (LinearLayout) findViewById(R.id.root);
         assert root != null;
 
-        try {
-            String json = readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);
+        final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
-            List<ChartInputData> charts = ChartInputDataMapper.load(json, new ChartInputDataMapper.ColorParser() {
+        try {
+            final String json = ChartUtils.readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);
+
+            final List<ChartInputData> charts = ChartInputDataMapper.load(json, new ChartInputDataMapper.ColorParser() {
                 @Override
                 public int parseColor(String color) {
                     return Color.parseColor(color);
@@ -36,8 +37,11 @@ public class MainActivity extends AppCompatActivity {
             });
 
             for (int i = 0; i < charts.size(); i++) {
-                TelegramChart tc = new TelegramChart(this, null);
-                tc.setTitle(String.format(Locale.getDefault(), "Followers #%d", i + 1));
+                final View view = inflater.inflate(R.layout.telegram_chart_list_item, root, false);
+
+                final TelegramChartView tc = (TelegramChartView) view.findViewById(R.id.telegram_chart);
+
+                tc.setTitle(String.format(Locale.getDefault(), getString(R.string.chart_title_fmt), i + 1));
                 tc.setInputData(charts.get(i));
 
                 root.addView(tc);
@@ -45,15 +49,5 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private @NotNull String readStreamToString(@NotNull InputStream stream, @NotNull String charsetName) throws IOException {
-        int availBytes = stream.available();
-        byte[] buffer = new byte[availBytes];
-        int bytesRead = stream.read(buffer);
-        if (bytesRead != availBytes) {
-            throw new IOException("q");
-        }
-        return new String(buffer, charsetName);
     }
 }

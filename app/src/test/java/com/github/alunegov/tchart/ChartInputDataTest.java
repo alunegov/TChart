@@ -1,5 +1,7 @@
 package com.github.alunegov.tchart;
 
+import java.util.HashSet;
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -23,15 +25,15 @@ public class ChartInputDataTest {
         data.LinesValues[0] = new int[] {3, 5, 7, 5};
         data.LinesValues[1] = new int[] {13, 15, 17, 15};
 
-        int[] minMax = data.findYMinMax(0, 3);
+        int[] minMax = data.findYMinMax(0, 3, new HashSet<Integer>());
         assertEquals(3, minMax[0]);
         assertEquals(17, minMax[1]);
 
-        minMax = data.findYMinMax(1, 3);
+        minMax = data.findYMinMax(1, 3, new HashSet<Integer>());
         assertEquals(5, minMax[0]);
         assertEquals(17, minMax[1]);
 
-        minMax = data.findYMinMax(1, 1);
+        minMax = data.findYMinMax(1, 1, new HashSet<Integer>());
         assertEquals(5, minMax[0]);
         assertEquals(15, minMax[1]);
     }
@@ -43,10 +45,10 @@ public class ChartInputDataTest {
         data.LinesValues[0] = new int[] {-3, -5, -7, -5};
         data.LinesValues[1] = new int[] {-13, -15, -17, -15};
 
-        assertEquals(14, data.findYAbsSwing(0, 3));
+        assertEquals(14, data.findYAbsSwing(0, 3, new HashSet<Integer>()));
 
-        assertEquals(12, data.findYAbsSwing(1, 3));
+        assertEquals(12, data.findYAbsSwing(1, 3, new HashSet<Integer>()));
 
-        assertEquals(10, data.findYAbsSwing(1, 1));
+        assertEquals(10, data.findYAbsSwing(1, 1, new HashSet<Integer>()));
     }
 }

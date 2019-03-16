@@ -1,6 +1,7 @@
 package com.github.alunegov.tchart;
 
 import android.app.Application;
+
 import com.codemonkeylabs.fpslibrary.TinyDancer;
 
 public class DebugApplication extends Application {

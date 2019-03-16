@@ -3,9 +3,9 @@ package com.github.alunegov.tchart;
 import java.io.File;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -23,7 +23,7 @@ public class ChartInputDataMapperTest {
         when(colorParserMock.parseColor(anyString())).thenReturn(FAKE_COLOR);
 
         File jsonFile = new File(".\\src\\main\\res\\raw\\", "chart_data.json");
-        String json = FileUtils.readFileToString(jsonFile);
+        String json = ChartUtils.readFileToString(jsonFile, "UTF8");
 
         List<ChartInputData> l = ChartInputDataMapper.load(json, colorParserMock);
 
