@@ -8,13 +8,10 @@
     android:paddingBottom="3dp">
 
     <CheckBox
-        android:id="@+id/line_visibility"
+        android:id="@+id/line_checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:checked="true"/>
-    <TextView
-        android:id="@+id/line_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/dummy"/>
+        android:checked="true"
+        android:text="@string/dummy"
+        android:textColor="@color/tchart_line_name_text"/>
 </LinearLayout>

@@ -9,22 +9,22 @@
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/tchart_vertical_margin"
         android:text="@string/dummy"
-        android:textColor="#3896D4"/>
+        android:textColor="@color/tchart_title"/>
     <com.github.alunegov.tchart.MainChartView
         android:id="@+id/main_chart"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginTop="16dp"/>
+        android:layout_height="@dimen/tchart_main_height"
+        android:layout_marginTop="@dimen/tchart_vertical_margin"/>
     <com.github.alunegov.tchart.PreviewChartView
         android:id="@+id/preview_chart"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_marginTop="16dp"/>
+        android:layout_height="@dimen/tchart_preview_height"
+        android:layout_marginTop="@dimen/tchart_vertical_margin"/>
     <com.github.alunegov.tchart.LineNameListView
         android:id="@+id/line_names"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="@dimen/tchart_vertical_margin"/>
 </merge>

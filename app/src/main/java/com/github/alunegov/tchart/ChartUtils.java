@@ -33,7 +33,7 @@ public class ChartUtils {
         return new String(buffer, charsetName);
     }
 
-    public static Paint makeLinePaint(int color, int width) {
+    public static Paint makeLinePaint(int color, float width) {
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         paint.setColor(color);
@@ -43,7 +43,7 @@ public class ChartUtils {
         return paint;
     }
 
-    public static Paint[] makeLinesPaints(int[] colors, int width) {
+    public static Paint[] makeLinesPaints(int[] colors, float width) {
         Paint[] paints = new Paint[colors.length];
         for (int i = 0; i < colors.length; i++) {
             paints[i] = makeLinePaint(colors[i], width);

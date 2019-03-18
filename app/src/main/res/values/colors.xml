@@ -3,4 +3,11 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="tchart_title">#3896D4</color>
+    <color name="tchart_axis_text">#96A2AA</color>
+    <color name="tchart_axis_line">#F1F1F2</color>
+    <color name="tchart_cursor_line">#E5EBEF</color>
+    <color name="tchart_preview_faded">#C8F5F8F9</color>
+    <color name="tchart_preview_frame">#DBE7F0</color>
+    <color name="tchart_line_name_text">#222222</color>
 </resources>

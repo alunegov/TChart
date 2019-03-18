@@ -1,13 +1,18 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.*;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
@@ -17,20 +22,28 @@ public class MainChartView extends View {
 
     private static final int AXIS_LINES_COUNT = 5;
 
-    private static final int LINE_WIDTH = 4;
+    private static final int LINE_WIDTH_DP = 3;
 
-    private static final int AXIS_TEXT_COLOR = Color.rgb(152, 162, 170);
-    private static final int Y_AXIS_LINE_COLOR = Color.rgb(241, 241, 242);
-    private static final int CURSOR_LINE_COLOR = Color.rgb(229, 235, 239);
-    private static final int CURSOR_LINE_WIDTH = 2;
+    private static final int AXIS_TEXT_SIZE_SP = 17;
+    private static final int AXIS_TEXT_COLOR = Color.parseColor("#96A2AA");
 
-    private static final int MARKER_RADIUS = 9;
-    private static final int MARKER_FILL_RADIUS = MARKER_RADIUS - LINE_WIDTH / 2;
+    private static final int AXIS_LINE_COLOR = Color.parseColor("#F1F1F2");
+    private static final int AXIS_LINE_WIDTH_DP = 1;
+
+    private static final int CURSOR_LINE_COLOR = Color.parseColor("#E5EBEF");
+    private static final int CURSOR_LINE_WIDTH_DP = 2;
+
+    private static final int MARKER_RADIUS_DP = 6;
+
+    private float lineWidth;
+    private float axisTextSize;
+    private float markerRadius, markerFillRadius;
 
     private ChartInputData inputData;
     private ChartDrawData drawData;
     // индекс точки с курсором
     private int cursorIndex = NO_CURSOR;
+
     // настройки отрисовки линий
     private Paint[] linesPaints;
     // настройки отрисовки заполнения маркера курсора (чтобы получить заливку маркера цветом фона)
@@ -44,6 +57,63 @@ public class MainChartView extends View {
 
     public MainChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
+        init(context);
+    }
+
+    private void init(Context context) {
+        final DisplayMetrics dm = context.getResources().getDisplayMetrics();
+
+        lineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, LINE_WIDTH_DP, dm);
+        axisTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, AXIS_TEXT_SIZE_SP, dm);
+        final float axisLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, AXIS_LINE_WIDTH_DP, dm);
+        final float cursorLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_LINE_WIDTH_DP, dm);
+        markerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, MARKER_RADIUS_DP, dm);
+        markerFillRadius = markerRadius - lineWidth / 2;
+
+        int axisTextColor;
+        try {
+            axisTextColor = ContextCompat.getColor(context, R.color.tchart_axis_text);
+        } catch (Resources.NotFoundException e) {
+            axisTextColor = AXIS_TEXT_COLOR;
+        }
+
+        int axisLineColor;
+        try {
+            axisLineColor = ContextCompat.getColor(context, R.color.tchart_axis_line);
+        } catch (Resources.NotFoundException e) {
+            axisLineColor = AXIS_LINE_COLOR;
+        }
+
+        int cursorLineColor;
+        try {
+            cursorLineColor = ContextCompat.getColor(context, R.color.tchart_cursor_line);
+        } catch (Resources.NotFoundException e) {
+            cursorLineColor = CURSOR_LINE_COLOR;
+        }
+
+        linesMarkerFillPaint = new Paint();
+        linesMarkerFillPaint.setAntiAlias(true);
+        linesMarkerFillPaint.setColor(Color.WHITE);  // sets in onDraw
+        linesMarkerFillPaint.setStyle(Paint.Style.FILL);
+
+        axisTextPaint = new Paint();
+        axisTextPaint.setAntiAlias(true);
+        axisTextPaint.setColor(axisTextColor);
+        axisTextPaint.setStyle(Paint.Style.FILL);
+        axisTextPaint.setTextSize(axisTextSize);
+
+        yAxisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth);
+
+        helperLinePaint = ChartUtils.makeLinePaint(cursorLineColor, cursorLineWidth);
+    }
+
+    public void setAxisTextSize(float px) {
+        axisTextSize = px;
+
+        axisTextPaint.setTextSize(axisTextSize);
+
+        invalidate();
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
@@ -52,22 +122,7 @@ public class MainChartView extends View {
         drawData = new ChartDrawData(inputData);
         drawData.setXRange(0, inputData.XValues.length - 1);
 
-        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, LINE_WIDTH);
-
-        linesMarkerFillPaint = new Paint();
-        linesMarkerFillPaint.setAntiAlias(true);
-        linesMarkerFillPaint.setColor(Color.WHITE);  // set in onDraw
-        linesMarkerFillPaint.setStyle(Paint.Style.FILL);
-
-        axisTextPaint = new Paint();
-        axisTextPaint.setAntiAlias(true);
-        axisTextPaint.setColor(AXIS_TEXT_COLOR);
-        axisTextPaint.setStyle(Paint.Style.FILL);
-        axisTextPaint.setTextSize(30);
-
-        yAxisLinePaint = ChartUtils.makeLinePaint(Y_AXIS_LINE_COLOR, 1);
-
-        helperLinePaint = ChartUtils.makeLinePaint(CURSOR_LINE_COLOR, CURSOR_LINE_WIDTH);
+        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
     }
 
     public void setXRange(float xLeftValue, float xRightValue) {
@@ -143,17 +198,17 @@ public class MainChartView extends View {
     private void drawXAxis(@NotNull Canvas canvas) {
         final float xSwing = Math.abs(drawData.getXRightValue() - drawData.getXLeftValue());
 
-        long stepValue = (long) xSwing / 4;
-        //stepValue = 50;
+        long stepValue = (long) xSwing / AXIS_LINES_COUNT;
 
         final int stepPixel =  (int) drawData.xToPixel(stepValue);
         if (stepPixel == 0) {
             return;
         }
 
+        final SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
+
         int i = 0;
         for (int x = 0; x < getWidth(); x = x + stepPixel) {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd");
             final String s = sdf.format(new Date(i * stepValue * 1000L));
             canvas.drawText(s, x, getHeight(), axisTextPaint);
 
@@ -165,7 +220,6 @@ public class MainChartView extends View {
         final float ySwing = Math.abs(drawData.getYMax() - drawData.getYMin());
 
         int stepValue = (int) ySwing / AXIS_LINES_COUNT;
-        //stepValue = 50;
 
         final int stepPixel =  (int) drawData.pixelToY(stepValue);
         if (stepPixel == 0) {
@@ -177,7 +231,7 @@ public class MainChartView extends View {
             canvas.drawLine(0, getHeight() - y, getWidth(), getHeight() - y, yAxisLinePaint);
 
             final String s = String.valueOf(i * stepValue);
-            canvas.drawText(s, 0, getHeight() - y - 20, axisTextPaint);
+            canvas.drawText(s, 0, getHeight() - y - 20, axisTextPaint);  // TODO: scale dp->px
 
             i++;
         }
@@ -203,14 +257,14 @@ public class MainChartView extends View {
 
         canvas.drawLine(cursorX, 0, cursorX, getHeight(), helperLinePaint);
 
-        linesMarkerFillPaint.setColor(Color.WHITE);  // TODO: use canvas color
+        linesMarkerFillPaint.setColor(Color.WHITE);  // TODO: use canvas background color
         for (int i = 0; i < inputData.LinesValues.length; i++) {
             final float cursorY = drawData.yToPixel(inputData.LinesValues[i][cursorIndex] - drawData.getYMin());
 
             // граница маркера цветом графика
-            canvas.drawCircle(cursorX, cursorY, MARKER_RADIUS, linesPaints[i]);
+            canvas.drawCircle(cursorX, cursorY, markerRadius, linesPaints[i]);
             // заполнение маркера цветом фона
-            canvas.drawCircle(cursorX, cursorY, MARKER_FILL_RADIUS, linesMarkerFillPaint);
+            canvas.drawCircle(cursorX, cursorY, markerFillRadius, linesMarkerFillPaint);
         }
     }
 }

@@ -5,5 +5,8 @@
     android:id="@+id/telegram_chart"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    custom:title="@string/dummy">
+    custom:title="@string/dummy"
+    custom:title_text_size="@dimen/tchart_text_size"
+    custom:axis_text_size="@dimen/tchart_axis_text_size"
+    custom:line_name_text_size="@dimen/tchart_text_size">
 </com.github.alunegov.tchart.TelegramChartView>
