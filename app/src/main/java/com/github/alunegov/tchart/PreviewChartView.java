@@ -8,22 +8,19 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewConfiguration;
-
-import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 
-public class PreviewChartView extends View {
+public class PreviewChartView extends AbsChartView {
     private static final int FADED_COLOR = Color.parseColor("#C8F5F8F9");
 
     private static final int FRAME_COLOR = Color.parseColor("#DBE7F0");
 
-    private static final float LINE_WIDTH_DP = 1.5f;
+    private static final float LINE_WIDTH_DP = 1.0f;
 
-    private static final int BORDER_HORIZONTAL_WIDTH_DP = 8;
-    private static final int BORDER_VERTICAL_HEIGHT_DP = 2;
+    private static final float BORDER_HORIZONTAL_WIDTH_DP = 4f;
+    private static final float BORDER_VERTICAL_HEIGHT_DP = 1.5f;
 
     private static final int TOUCH_SLOP1_DP = 40;
     private static final int TOUCH_SLOP2_DP = 10;
@@ -36,15 +33,12 @@ public class PreviewChartView extends View {
     private float touchSlop1, touchSlop2;
 
     private OnChangeListener onChangeListener;
-    private ChartDrawData drawData;
     private MoveMode moveMode = MoveMode.NOP;
     private float moveStart;
     private boolean isMoving = false;
     private float zoneLeftValue, zoneRightValue;
     private RectF zoneLeftBorder, zoneRightBorder;
 
-    // настройки отрисовки линий
-    private Paint[] linesPaints;
     // настройки отрисовки скрывающего слоя для зон слева и справа от выбранного диапазона по X
     private Paint fadedPaint;
     // настройки отрисовки рамки выбранного диапазона по X
@@ -109,16 +103,8 @@ public class PreviewChartView extends View {
         }
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
-    }
 
-    public void updateLineVisibility(int lineIndex, boolean visible) {
-        if (drawData == null) {
-            return;
-        }
-
-        drawData.updateLineVisibility(lineIndex, visible);
-
-        invalidate();
+        //invalidate();
     }
 
     @Override
@@ -129,10 +115,12 @@ public class PreviewChartView extends View {
 
         drawData.setArea(new RectF(0, 0, w, h));
 
-        float px = drawData.xToPixel(zoneLeftValue - drawData.getXLeftValue());
+        float px = drawData.xToPixel(zoneLeftValue);
         zoneLeftBorder.set(px, 0, px + borderHorizontalWidth, h);
-        px = drawData.xToPixel(zoneRightValue - drawData.getXLeftValue());
+        px = drawData.xToPixel(zoneRightValue);
         zoneRightBorder.set(px - borderHorizontalWidth, 0, px, h);
+
+        //invalidate();
     }
 
     @Override
@@ -260,12 +248,12 @@ public class PreviewChartView extends View {
     }
 
     private void updateZoneLeftBorder() {
-        zoneLeftBorder.left = drawData.xToPixel(zoneLeftValue - drawData.getXLeftValue());
+        zoneLeftBorder.left = drawData.xToPixel(zoneLeftValue);
         zoneLeftBorder.right = zoneLeftBorder.left + borderHorizontalWidth;
     }
 
     private void updateZoneRightBorder() {
-        zoneRightBorder.right = drawData.xToPixel(zoneRightValue - drawData.getXLeftValue());
+        zoneRightBorder.right = drawData.xToPixel(zoneRightValue);
         zoneRightBorder.left = zoneRightBorder.right - borderHorizontalWidth;
     }
 
@@ -278,17 +266,6 @@ public class PreviewChartView extends View {
         drawFrame(canvas);
         drawLines(canvas);
         drawLinesFade(canvas);
-    }
-
-    private void drawLines(@NotNull Canvas canvas) {
-        final Path[] paths = drawData.getLinesPaths();
-        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
-
-        for (int i = 0; i < paths.length; i++) {
-            if (!invisibleLinesIndexes.contains(i)) {
-                canvas.drawPath(paths[i], linesPaints[i]);
-            }
-        }
     }
 
     private void drawLinesFade(@NotNull Canvas canvas) {

@@ -44,6 +44,8 @@ public class LineNameListView extends LinearLayout {
             final CheckBox cb = (CheckBox) view.findViewById(R.id.line_checkbox);
             cb.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
         }
+
+        //invalidate();
     }
 
     public void setLineNames(@NotNull LineName[] lineNames) {
@@ -68,6 +70,8 @@ public class LineNameListView extends LinearLayout {
 
             addView(view);
         }
+
+        //invalidate();
     }
 
     private final CompoundButton.OnCheckedChangeListener lineVisibilityOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {

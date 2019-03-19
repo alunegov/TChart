@@ -12,8 +12,8 @@ import android.widget.TextView;
 import org.jetbrains.annotations.NotNull;
 
 public class TelegramChartView extends LinearLayout {
-    private static final int DEF_TEXT_SIZE_SP = 21;
-    private static final int DEF_AXIS_TEXT_SIZE_SP = 17;
+    private static final int DEF_TEXT_SIZE_SP = 17;
+    private static final int DEF_AXIS_TEXT_SIZE_SP = 12;
 
     private TextView titleView;
     private MainChartView mainChartView;

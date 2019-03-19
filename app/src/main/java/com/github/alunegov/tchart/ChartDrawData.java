@@ -25,6 +25,7 @@ public class ChartDrawData {
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
     private Set<Integer> invisibleLinesIndexes;
+    private boolean isAllLinesInvisible;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
     private int yMin, yMax;
     // коэффициент пересчета значений в пиксели
@@ -35,7 +36,8 @@ public class ChartDrawData {
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
 
-        invisibleLinesIndexes = new HashSet<Integer>(inputData.LinesValues.length);
+        invisibleLinesIndexes = new HashSet<>(inputData.LinesValues.length);
+        isAllLinesInvisible = false;
 
         linesPaths = new Path[inputData.LinesValues.length];
         for (int i = 0; i < linesPaths.length; i++) {
@@ -86,6 +88,10 @@ public class ChartDrawData {
         return invisibleLinesIndexes;
     }
 
+    public boolean getIsAllLinesInvisible() {
+        return isAllLinesInvisible;
+    }
+
     public void updateLineVisibility(int lineIndex, boolean visible) {
         if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
             return;
@@ -106,6 +112,14 @@ public class ChartDrawData {
 
     public int getYMax() {
         return yMax;
+    }
+
+    public float getXScale() {
+        return scaleX;
+    }
+
+    public float getYScale() {
+        return scaleY;
     }
 
     public @NotNull Path[] getLinesPaths() {
@@ -134,10 +148,13 @@ public class ChartDrawData {
                 yMin = 0;
         }
 
-        yMax = yMinMax[1];
+        // добавляем к максимуму часть размаха, чтобы сверху было немного места (так на ref, была видна пометка точки)
+        yMax = yMinMax[1] + (int) (0.05 * (yMinMax[1] - yMin));
 
-        scaleX = area.width() / (xRightValue - xLeftValue);
+        scaleX = area.width() / Math.abs(xRightValue - xLeftValue);
         scaleY = area.height() / (float) Math.abs(yMax - yMin);
+
+        int visibleLinesCount = 0;
 
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
@@ -148,16 +165,20 @@ public class ChartDrawData {
             }
 
             linesPaths[j].moveTo(
-                    xToPixel(inputData.XValues[xLeftIndex] - xLeftValue),
-                    yToPixel(inputData.LinesValues[j][xLeftIndex] - yMin)
+                    xToPixel(inputData.XValues[xLeftIndex]),
+                    yToPixel(inputData.LinesValues[j][xLeftIndex])
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linesPaths[j].lineTo(
-                        xToPixel(inputData.XValues[i] - xLeftValue),
-                        yToPixel(inputData.LinesValues[j][i] - yMin)
+                        xToPixel(inputData.XValues[i]),
+                        yToPixel(inputData.LinesValues[j][i])
                 );
             }
+
+            visibleLinesCount++;
         }
+
+        isAllLinesInvisible = visibleLinesCount == 0;
     }
 
     public int findXLeftIndex(float xValue) {
@@ -181,20 +202,20 @@ public class ChartDrawData {
     }
 
     public float xToPixel(float x) {
-        return area.left + x * scaleX;
+        return area.left + (x - xLeftValue) * scaleX;
     }
 
     public float pixelToX(float px) {
-        return px / scaleX + xLeftValue;
+        return (px - area.left) / scaleX + xLeftValue;
     }
 
     public float yToPixel(int y) {
-        return area.bottom - y * scaleY;
+        return area.bottom - (y - yMin) * scaleY;
     }
 
-    public float pixelToY(float py) {
-        return py * scaleY + yMin;
-    }
+    /*public float pixelToY(float py) {
+        return py / scaleY + yMin;
+    }*/
 
     // Режим нижней границы Y - какое значение используется для минимума по Y на графике
     public enum YMinMode {
