@@ -257,8 +257,15 @@ public class MainChartView extends View {
 
         canvas.drawLine(cursorX, 0, cursorX, getHeight(), helperLinePaint);
 
+        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+
         linesMarkerFillPaint.setColor(Color.WHITE);  // TODO: use canvas background color
+
         for (int i = 0; i < inputData.LinesValues.length; i++) {
+            if (invisibleLinesIndexes.contains(i)) {
+                continue;
+            }
+
             final float cursorY = drawData.yToPixel(inputData.LinesValues[i][cursorIndex] - drawData.getYMin());
 
             // граница маркера цветом графика
