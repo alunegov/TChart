@@ -3,11 +3,19 @@ package com.github.alunegov.tchart;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.*;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -20,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 public class MainChartView extends AbsChartView {
     private static final int NO_CURSOR = -1;
 
-    private static final String NO_DATA = "NO DATA";
+    private static final String NO_DATA = "NO VISIBLE LINES";
 
     private static final int AXIS_LINES_COUNT = 5;
 
@@ -35,12 +43,16 @@ public class MainChartView extends AbsChartView {
     private static final int CURSOR_LINE_COLOR = Color.parseColor("#E5EBEF");
     private static final float CURSOR_LINE_WIDTH_DP = 1.0f;
 
+    private static final int CURSOR_POPUP_TOP_SHIFT_DP = 30;
+    private static final int CURSOR_POPUP_TOP_MARGIN_DP = 30;
+
     private static final int MARKER_RADIUS_DP = 4;
 
     private static final int Y_AXIS_TEXT_VERTICAL_MARGIN_DP = 7;
     private static final int X_AXIS_TEXT_VERTICAL_MARGIN_DP = 3;
 
     private float lineWidth;
+    private int cursorPopupTopShift, cursorPopupTopMargin;
     private float markerRadius, markerFillRadius;
     private float yAxisTextVerticalMargin;
     private float xAxisTextVerticalMargin;
@@ -49,6 +61,13 @@ public class MainChartView extends AbsChartView {
     private int cursorIndex = NO_CURSOR;
     // высота области графика (высота вида минус текст x-оси)
     private float graphAreaHeight;
+
+    // popup для отображения значений курсора
+    private PopupWindow cursorPopupWindow;
+    // Преобразователь значения в текст для x-значений курсора
+    private XAxisConverter cursorDateCnv;
+    // Положение и размеры вида в кординатах экрана. Пересчитываются при каждом отображении значений курсора
+    private Rect rectOnScreen;
 
     // настройки отрисовки заполнения маркера курсора (чтобы получить заливку маркера цветом фона)
     private Paint linesMarkerFillPaint;
@@ -72,10 +91,15 @@ public class MainChartView extends AbsChartView {
         final float axisTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, AXIS_TEXT_SIZE_SP, dm);
         final float axisLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, AXIS_LINE_WIDTH_DP, dm);
         final float cursorLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_LINE_WIDTH_DP, dm);
+        cursorPopupTopShift = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_POPUP_TOP_SHIFT_DP, dm);
+        cursorPopupTopMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_POPUP_TOP_MARGIN_DP, dm);
         markerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, MARKER_RADIUS_DP, dm);
         markerFillRadius = markerRadius - lineWidth / 2;
         xAxisTextVerticalMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, X_AXIS_TEXT_VERTICAL_MARGIN_DP, dm);
         yAxisTextVerticalMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, Y_AXIS_TEXT_VERTICAL_MARGIN_DP, dm);
+
+        final String cursorDateFormatTemplate = ChartUtils.getMarkerDateFormatTemplate(context);
+        cursorDateCnv = new XAxisConverter(context, cursorDateFormatTemplate);
 
         int axisTextColor;
         try {
@@ -143,6 +167,14 @@ public class MainChartView extends AbsChartView {
 
         drawData.setXRange(xLeftValue, xRightValue);
 
+        if (cursorIndex != NO_CURSOR) {
+            // should never got here with cursorPopupWindow.setOutsideTouchable(true)
+            cursorIndex = NO_CURSOR;
+
+            assert cursorPopupWindow != null;
+            cursorPopupWindow.dismiss();
+        }
+
         invalidate();
     }
 
@@ -183,19 +215,29 @@ public class MainChartView extends AbsChartView {
             return true;
         }
 
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            final float x = event.getX();
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_CANCEL:
+                cursorIndex = NO_CURSOR;
 
-            final float xValue = drawData.pixelToX(x);
+                invalidate();
 
-            final int newCursorIndex = findCursorIndex(xValue);
+                updateCursorPopup();
 
-            // reset cursor if it set in same point
-            cursorIndex = (newCursorIndex != cursorIndex) ? newCursorIndex : NO_CURSOR;
+                break;
 
-            invalidate();
+            case MotionEvent.ACTION_UP:
+                final float x = event.getX();
+                final float xValue = drawData.pixelToX(x);
+                final int newCursorIndex = findCursorIndex(xValue);
 
-            // TODO: dialog
+                // reset cursor if it set in same point
+                cursorIndex = (newCursorIndex != cursorIndex) ? newCursorIndex : NO_CURSOR;
+
+                invalidate();
+
+                updateCursorPopup();
+
+                break;
         }
 
         return true;
@@ -204,6 +246,126 @@ public class MainChartView extends AbsChartView {
     private int findCursorIndex(float cursorXValue) {
         // TODO: find cursor near selected point
         return drawData.findXLeftIndex(cursorXValue);
+    }
+
+    private void updateCursorPopup() {
+        if (cursorIndex == NO_CURSOR) {
+            if (cursorPopupWindow != null) {
+                cursorPopupWindow.dismiss();
+            }
+            return;
+        }
+
+        if (cursorPopupWindow == null) {
+            createCursorPopupWindow();
+        }
+        assert cursorPopupWindow != null;
+
+        updateCursorPopupValues();
+
+        final int[] loc = new int[2];
+        getLocationOnScreen(loc);
+
+        rectOnScreen = new Rect(loc[0], loc[1], loc[0] + getWidth(), loc[1] + getHeight());
+
+        final int cursorX = (int) drawData.xToPixel(inputData.XValues[cursorIndex]);
+        int y = rectOnScreen.top - cursorPopupTopShift;
+        if (y <= cursorPopupTopMargin) {
+            y = cursorPopupTopMargin;
+        }
+
+        if (!cursorPopupWindow.isShowing()) {
+            cursorPopupWindow.showAtLocation(this, Gravity.NO_GRAVITY, cursorX, y);
+        }
+        cursorPopupWindow.update(cursorX, y, LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
+    private void createCursorPopupWindow() {
+        final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        assert inflater != null;
+
+        final View popupView = inflater.inflate(R.layout.cursor_popup, null);
+        assert popupView != null;
+
+        cursorPopupWindow = new PopupWindow(popupView, LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            cursorPopupWindow.setElevation(5.0f);
+        }
+
+        cursorPopupWindow.setTouchable(true);
+        cursorPopupWindow.setOutsideTouchable(true);
+        // В v16 без задания setBackgroundDrawable не работает Touchable/OutsideTouchable. Задание TRANSPARENT и
+        // использование @drawable/round_rect_shape в xml-разметке работают как нужно (в v17 и v27).
+        cursorPopupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        cursorPopupWindow.setTouchInterceptor(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    // Don't reset cursor/dismiss popup when touching inside MainChartView - it's a cursor changing.
+                    // If not, scroll or something else, when MotionEvent.ACTION_CANCEL fires.
+                    final int[] popupLoc = new int[2];
+                    v.getLocationOnScreen(popupLoc);
+
+                    final int xOnScreen = popupLoc[0] + (int) event.getX();
+                    final int yOnScreen = popupLoc[1] + (int) event.getY();
+
+                    if (rectOnScreen.contains(xOnScreen, yOnScreen)) {
+                        return true;
+                    }
+                }
+
+                cursorIndex = NO_CURSOR;
+
+                invalidate();
+
+                cursorPopupWindow.dismiss();
+
+                return true;
+            }
+        });
+    }
+
+    // создание списка видов в cursorPopupWindow со значениями курсора на видимых сигналах
+    private void updateCursorPopupValues() {
+        assert cursorPopupWindow != null;
+        assert cursorIndex != NO_CURSOR;
+
+        final View popupView = cursorPopupWindow.getContentView();
+        assert popupView != null;
+
+        // дата
+        final TextView dateTextView = (TextView) popupView.findViewById(R.id.cursor_date);
+        dateTextView.setText(cursorDateCnv.toText(inputData.XValues[cursorIndex]));
+
+        // значения линий
+        LinearLayout valuesLayout = (LinearLayout) popupView.findViewById(R.id.cursor_values);
+        assert valuesLayout != null;
+
+        final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        assert inflater != null;
+
+        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+
+        valuesLayout.removeAllViews();
+
+        for (int i = 0; i < inputData.LinesValues.length; i++) {
+            if (invisibleLinesIndexes.contains(i)) {
+                continue;
+            }
+
+            final View view = inflater.inflate(R.layout.view_cursor_value_list_item, valuesLayout, false);
+
+            final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
+            valueTextBox.setText(String.valueOf(inputData.LinesValues[i][cursorIndex]));
+            valueTextBox.setTextColor(inputData.LinesColors[i]);
+
+            final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
+            lineNameTextBox.setText(inputData.LinesNames[i]);
+            lineNameTextBox.setTextColor(inputData.LinesColors[i]);
+
+            valuesLayout.addView(view);
+        }
     }
 
     @Override
@@ -290,8 +452,11 @@ public class MainChartView extends AbsChartView {
         private final @NotNull Date tmpDate = new Date();
 
         public XAxisConverter(@NotNull Context context) {
-            final String dateFormatTemplate = ChartUtils.getAxisDateFormatTemplate(context);
-            dateFormat = new SimpleDateFormat(dateFormatTemplate, Locale.getDefault());
+            this(context, ChartUtils.getAxisDateFormatTemplate(context));
+        }
+
+        public XAxisConverter(@NotNull Context context, @NotNull String template) {
+            dateFormat = new SimpleDateFormat(template, Locale.getDefault());
         }
 
         @Override

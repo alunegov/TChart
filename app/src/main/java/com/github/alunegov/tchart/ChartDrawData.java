@@ -98,7 +98,7 @@ public class ChartDrawData {
         update();
     }
 
-    public Set<Integer> getInvisibleLinesIndexes() {
+    public @NotNull Set<Integer> getInvisibleLinesIndexes() {
         return invisibleLinesIndexes;
     }
 

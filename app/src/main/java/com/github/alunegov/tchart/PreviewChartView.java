@@ -151,6 +151,7 @@ public class PreviewChartView extends AbsChartView {
 
                 break;
 
+            case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
                 if (moveMode != MoveMode.NOP) {
                     moveMode = MoveMode.NOP;

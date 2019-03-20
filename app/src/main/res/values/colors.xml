@@ -10,4 +10,5 @@
     <color name="tchart_preview_faded">#C8F5F8F9</color>
     <color name="tchart_preview_frame">#DBE7F0</color>
     <color name="tchart_line_name_text">#222222</color>
+    <color name="app_background">#FFFFFF</color>
 </resources>
