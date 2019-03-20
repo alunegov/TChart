@@ -2,5 +2,5 @@
     <string name="app_name">TChart</string>
     <string name="dummy">dummy</string>
     <string name="activity_title">Statistics</string>
-    <string name="chart_title_fmt">Followers #%d</string>
+    <string name="chart_title_fmt">Chart #%d</string>
 </resources>

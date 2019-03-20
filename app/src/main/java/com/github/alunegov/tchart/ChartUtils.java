@@ -1,6 +1,8 @@
 package com.github.alunegov.tchart;
 
+import android.content.Context;
 import android.graphics.Paint;
+import android.text.format.DateFormat;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,5 +52,54 @@ public class ChartUtils {
         }
 
         return paints;
+    }
+
+    private static final String DEF_AXIS_DATE_FORMAT_TEMPLATE = "MMM dd";
+
+    public static @NotNull String getAxisDateFormatTemplate(@NotNull Context context) {
+        String res;
+
+        try {
+            final char[] dfo = DateFormat.getDateFormatOrder(context);
+
+            if (dfo.length == 0) {
+                res = DEF_AXIS_DATE_FORMAT_TEMPLATE;
+            } else {
+                final StringBuilder sb = new StringBuilder();
+
+                for (int i = 0; i < dfo.length; i++) {
+                    switch (dfo[i]) {
+                        case 'y':
+                            // skip
+                            break;
+
+                        case 'M':
+                            if (sb.length() > 0) {
+                                sb.append(" ");
+                            }
+                            sb.append("MMM");
+                            break;
+
+                        case 'd':
+                            if (sb.length() > 0) {
+                                sb.append(" ");
+                            }
+                            sb.append("dd");
+                            break;
+                    }
+                }
+
+                res = sb.toString();
+            }
+        } catch (Exception e) {
+            res = DEF_AXIS_DATE_FORMAT_TEMPLATE;
+        }
+
+        return res;
+    }
+
+    public static @NotNull String getMarkerDateFormatTemplate(@NotNull Context context) {
+        final String res = getAxisDateFormatTemplate(context);
+        return "EEE, " + res;
     }
 }

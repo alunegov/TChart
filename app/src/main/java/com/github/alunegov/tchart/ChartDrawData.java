@@ -3,15 +3,19 @@ package com.github.alunegov.tchart;
 import android.graphics.Path;
 import android.graphics.RectF;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
     // исходные данные графика
     private ChartInputData inputData;
+    // Кол-во линий оцифровки осей
+    private int axisLineCount;
+    // Преобразователь значения в текст для оцифровки оси X
+    private AxisTextConverter xAxisTextConv;
     // режим нижней границы Y
     private YMinMode yMinMode = YMinMode.ZERO;
     // область отображения графика
@@ -32,6 +36,8 @@ public class ChartDrawData {
     private float scaleX, scaleY;
     // отображаемые данные линий (сигналов) в виде Path
     private Path[] linesPaths;
+    // Метки для оцифровки осей
+    private List<AxisMark> xAxisMarks, yAxisMarks;
 
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
@@ -43,6 +49,14 @@ public class ChartDrawData {
         for (int i = 0; i < linesPaths.length; i++) {
             linesPaths[i] = new Path();
         }
+    }
+
+    public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextConv) {
+        this.axisLineCount = axisLineCount;
+        this.xAxisTextConv = xAxisTextConv;
+
+        xAxisMarks = new ArrayList<>();
+        yAxisMarks = new ArrayList<>();
     }
 
     public void setArea(@NotNull RectF area) {
@@ -126,6 +140,14 @@ public class ChartDrawData {
         return linesPaths;
     }
 
+    public @Nullable List<AxisMark> getXAxisMarks() {
+        return xAxisMarks;
+    }
+
+    public @Nullable List<AxisMark> getYAxisMarks() {
+        return yAxisMarks;
+    }
+
     private void update() {
         if (!areaSet) {
             return;
@@ -179,6 +201,11 @@ public class ChartDrawData {
         }
 
         isAllLinesInvisible = visibleLinesCount == 0;
+
+        if (getIsMarksUpdating()) {
+            updateXAxisMarks();
+            updateYAxisMarks();
+        }
     }
 
     public int findXLeftIndex(float xValue) {
@@ -217,11 +244,124 @@ public class ChartDrawData {
         return py / scaleY + yMin;
     }*/
 
+    private boolean getIsMarksUpdating() {
+        return (axisLineCount > 0) && (xAxisTextConv != null);
+    }
+
+    private void updateXAxisMarks() {
+        assert xAxisMarks != null;
+        assert axisLineCount > 0;
+        assert xAxisTextConv != null;
+
+        xAxisMarks.clear();
+
+        final float xSwing = Math.abs(xRightValue - xLeftValue);
+
+        final long stepValue = (long) (xSwing / axisLineCount);
+        // TODO: beautify step?
+
+        final float stepPixel = stepValue * scaleX;
+        if (stepPixel <= 0) {
+            return;
+        }
+
+        // начало отсчёта
+        final long startXValue = (long) (xLeftValue / stepValue) * stepValue;
+        final float startXPixel = xToPixel(startXValue);
+
+        final float w = area.width();
+
+        long i = startXValue;
+        for (float x = startXPixel; x < w; x += stepPixel) {
+            final String text = xAxisTextConv.toText(i);
+
+            xAxisMarks.add(new AxisMark(x, text));
+
+            i += stepValue;
+        }
+    }
+
+    private void updateYAxisMarks() {
+        assert yAxisMarks != null;
+        assert axisLineCount > 0;
+
+        yAxisMarks.clear();
+
+        final float ySwing = Math.abs(yMax - yMin);
+
+        int stepValue = (int) (ySwing / axisLineCount);
+
+        // beautify step
+        int k = 0;
+        while (stepValue >= 20) {
+            stepValue /= 10;
+            k++;
+        }
+        // значения (10, 19] при делении на 10 "дадут" 1, и линий окажется слишком много - равномерно распределяем их
+        // между значениями 10, 15 и 20.
+        if (stepValue > 10) {
+            if (stepValue >= 18) {
+                stepValue = 20;
+            } else if (stepValue >= 14) {
+                stepValue = 15;
+            } else {
+                stepValue = 10;
+            }
+        }
+        while (k > 0) {
+            stepValue *= 10;
+            k--;
+        }
+
+        final float stepPixel = stepValue * scaleY;
+        if (stepPixel <= 0) {
+            return;
+        }
+
+        // начало отсчёта
+        int startYValue = yMin / stepValue * stepValue;
+        if (startYValue < yMin) {
+            startYValue += stepValue;
+        }
+        final float startYPixel = yToPixel(startYValue);
+
+        int i = startYValue;
+        for (float y = startYPixel; y >= 0; y -= stepPixel) {
+            final String text = String.valueOf(i);
+
+            yAxisMarks.add(new AxisMark(y, text));
+
+            i += stepValue;
+        }
+    }
+
     // Режим нижней границы Y - какое значение используется для минимума по Y на графике
-    public enum YMinMode {
+    private enum YMinMode {
         // использование минимума в отображаемом диапазоне X
         RANGE,
         // нулевое значение
         ZERO,
+    }
+
+    public interface AxisTextConverter {
+        @NotNull String toText(long value);
+    }
+
+    public static class AxisMark {
+        private float position;
+        private @NotNull String text;
+
+        public AxisMark(float position, @NotNull String text) {
+            this.position = position;
+            this.text = text;
+        }
+
+        public float getPosition() {
+            return position;
+        }
+
+        public @NotNull String getText() {
+            return text;
+        }
     }
 }

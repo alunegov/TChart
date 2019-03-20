@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LineNameListView extends LinearLayout {
-    private static final int TEXT_SIZE_SP = 21;
+    private static final int TEXT_SIZE_SP = 17;
 
     private float textSize;
 

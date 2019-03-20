@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
         assert root != null;
 
         final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        assert inflater != null;
 
         try {
             final String json = ChartUtils.readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);

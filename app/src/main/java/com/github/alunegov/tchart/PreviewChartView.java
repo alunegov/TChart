@@ -98,6 +98,7 @@ public class PreviewChartView extends AbsChartView {
 
         zoneLeftValue = inputData.XValues[inputData.XValues.length * 4 / 6];  // TODO: starting zoneLeft?
         zoneRightValue = inputData.XValues[inputData.XValues.length - 1];
+
         if (onChangeListener != null) {
             onChangeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
         }

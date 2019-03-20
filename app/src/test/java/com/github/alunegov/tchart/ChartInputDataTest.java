@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 public class ChartInputDataTest {
     @Test
-    public void testCtor() throws Exception {
+    public void testCtor() {
         ChartInputData data = new ChartInputData(1, 4);
 
         assertEquals(4, data.XValues.length);
@@ -19,7 +19,7 @@ public class ChartInputDataTest {
     }
 
     @Test
-    public void testFindYMinMax() throws Exception {
+    public void testFindYMinMax() {
         ChartInputData data = new ChartInputData(2, 4);
 
         data.LinesValues[0] = new int[] {3, 5, 7, 5};
@@ -39,7 +39,7 @@ public class ChartInputDataTest {
     }
 
     @Test
-    public void testFindYAbsSwing() throws Exception {
+    public void testFindYAbsSwing() {
         ChartInputData data = new ChartInputData(2, 4);
 
         data.LinesValues[0] = new int[] {-3, -5, -7, -5};

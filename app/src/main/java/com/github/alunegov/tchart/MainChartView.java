@@ -8,10 +8,10 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.MotionEvent;
-import android.view.View;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -128,6 +128,7 @@ public class MainChartView extends AbsChartView {
         this.inputData = inputData;
 
         drawData = new ChartDrawData(inputData);
+        drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
         drawData.setXRange(0, inputData.XValues.length - 1);
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
@@ -229,61 +230,31 @@ public class MainChartView extends AbsChartView {
     }
 
     private void drawXAxis(@NotNull Canvas canvas) {
-        final float xSwing = Math.abs(drawData.getXRightValue() - drawData.getXLeftValue());
+        final List<ChartDrawData.AxisMark> marks = drawData.getXAxisMarks();
+        assert marks != null;
 
-        final long stepValue = (long) (xSwing / AXIS_LINES_COUNT);
-        // TODO: beautify step?
+        final float y = getHeight() - xAxisTextVerticalMargin;
 
-        final float stepPixel = stepValue * drawData.getXScale();
-        if (stepPixel <= 0) {
-            return;
-        }
+        for (ChartDrawData.AxisMark mark: marks) {
+            // центруем текст относительно точки
+            final float x = mark.getPosition() - axisTextPaint.measureText(mark.getText()) / 2f;
 
-        final long startXValue = (long) (drawData.getXLeftValue() / stepValue) * stepValue;
-        final float startXPixel = drawData.xToPixel(startXValue);
-
-        final float textY = getHeight() - xAxisTextVerticalMargin;
-        final int w = getWidth();
-
-        final SimpleDateFormat sdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
-
-        long i = startXValue;
-        for (float x = startXPixel; x < w; x += stepPixel) {
-            final String s = sdf.format(new Date(i * 1000L));
-            canvas.drawText(s, x, textY, axisTextPaint);
-
-            i += stepValue;
+            canvas.drawText(mark.getText(), x, y, axisTextPaint);
         }
     }
 
     private void drawYAxis(@NotNull Canvas canvas) {
-        final float ySwing = Math.abs(drawData.getYMax() - drawData.getYMin());
-
-        int stepValue = (int) (ySwing / AXIS_LINES_COUNT);
-        // TODO: beautify step
-//        stepValue = stepValue / 10 * 10;
-
-        final float stepPixel = stepValue * drawData.getYScale();
-        if (stepPixel <= 0) {
-            return;
-        }
-
-        int startYValue = drawData.getYMin() / stepValue * stepValue;
-        if (startYValue < drawData.getYMin()) {
-            startYValue += stepValue;
-        }
-        final float startYPixel = drawData.yToPixel(startYValue);
+        final List<ChartDrawData.AxisMark> marks = drawData.getYAxisMarks();
+        assert marks != null;
 
         final int w = getWidth();
 
-        int i = startYValue;
-        for (float y = startYPixel; y >= 0; y -= stepPixel) {
+        for (ChartDrawData.AxisMark mark: marks) {
+            final float y = mark.getPosition();
+
             canvas.drawLine(0, y, w, y, yAxisLinePaint);
 
-            final String s = String.valueOf(i);
-            canvas.drawText(s, 0, y - yAxisTextVerticalMargin, axisTextPaint);
-
-            i += stepValue;
+            canvas.drawText(mark.getText(), 0, y - yAxisTextVerticalMargin, axisTextPaint);
         }
     }
 
@@ -311,6 +282,22 @@ public class MainChartView extends AbsChartView {
             canvas.drawCircle(cursorX, cursorY, markerRadius, linesPaints[i]);
             // заполнение маркера цветом фона
             canvas.drawCircle(cursorX, cursorY, markerFillRadius, linesMarkerFillPaint);
+        }
+    }
+
+    private static class XAxisConverter implements ChartDrawData.AxisTextConverter {
+        private SimpleDateFormat dateFormat;
+        private final @NotNull Date tmpDate = new Date();
+
+        public XAxisConverter(@NotNull Context context) {
+            final String dateFormatTemplate = ChartUtils.getAxisDateFormatTemplate(context);
+            dateFormat = new SimpleDateFormat(dateFormatTemplate, Locale.getDefault());
+        }
+
+        @Override
+        public @NotNull String toText(long value) {
+            tmpDate.setTime(value);
+            return dateFormat.format(tmpDate);
         }
     }
 }
