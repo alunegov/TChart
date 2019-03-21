@@ -229,8 +229,15 @@ public class MainChartView extends AbsChartView {
     }
 
     private int findCursorIndex(float cursorXValue) {
-        // TODO: find cursor near selected point
-        return drawData.findXLeftIndex(cursorXValue);
+        // use the closer point to cursorXValue
+        final int cursorIndex = drawData.findXLeftIndex(cursorXValue);
+        if ((cursorIndex + 1) < inputData.XValues.length) {
+            final float prevPointDelta = Math.abs(inputData.XValues[cursorIndex] - cursorXValue);
+            final float nextPointDelta = Math.abs(inputData.XValues[cursorIndex + 1] - cursorXValue);
+            return (prevPointDelta < nextPointDelta) ? cursorIndex : cursorIndex + 1;
+        } else {
+            return cursorIndex;
+        }
     }
 
     private void updateCursorPopup() {
