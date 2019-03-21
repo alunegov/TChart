@@ -23,9 +23,10 @@
 - [x] отрисовка пустого графика (все сигналы выключены)
 - [ ] разделитель между именами сигналов
 - [x] более точное выставление курсора (выбирать точку сигнала, ближайщую к точке касания)
-- [ ] release build
-  - [ ] singing keys
-  - [ ] remove tinydancer
+- [x] release build
+  - [x] singing keys
+  - [x] remove tinydancer
+    - в release conf он автовыпиливается (используется tinydancer-noop)
 
 ### bugs
 
