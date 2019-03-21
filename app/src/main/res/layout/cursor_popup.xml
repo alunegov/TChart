@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="10dp"
-    android:background="@drawable/round_rect_shape"
+    android:background="?attr/round_rect_shape"
     >
 
     <TextView
@@ -14,13 +14,15 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="5dp"
         android:text="@string/dummy"
-        android:textColor="@color/tchart_line_name_text"
+        android:textColor="?attr/tchart_line_name_text_color"
         android:textSize="17sp"
         />
+
     <LinearLayout
         android:id="@+id/cursor_values"
         android:orientation="horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         />
+
 </LinearLayout>

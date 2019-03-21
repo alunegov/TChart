@@ -61,19 +61,8 @@ public class PreviewChartView extends AbsChartView {
         touchSlop1 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP1_DP, dm);
         touchSlop2 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP2_DP, dm);
 
-        int fadedColor;
-        try {
-            fadedColor = ContextCompat.getColor(context, R.color.tchart_preview_faded);
-        } catch (Resources.NotFoundException e) {
-            fadedColor = FADED_COLOR;
-        }
-
-        int frameColor;
-        try {
-            frameColor = ContextCompat.getColor(context, R.color.tchart_preview_frame);
-        } catch (Resources.NotFoundException e) {
-            frameColor = FRAME_COLOR;
-        }
+        final int fadedColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_faded_color, FADED_COLOR);
+        final int frameColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_frame_color, FRAME_COLOR);
 
         // filled on first onSizeChanged
         zoneLeftBorder = new RectF();

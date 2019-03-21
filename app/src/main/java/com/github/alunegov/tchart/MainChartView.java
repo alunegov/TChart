@@ -101,30 +101,15 @@ public class MainChartView extends AbsChartView {
         final String cursorDateFormatTemplate = ChartUtils.getMarkerDateFormatTemplate(context);
         cursorDateCnv = new XAxisConverter(context, cursorDateFormatTemplate);
 
-        int axisTextColor;
-        try {
-            axisTextColor = ContextCompat.getColor(context, R.color.tchart_axis_text);
-        } catch (Resources.NotFoundException e) {
-            axisTextColor = AXIS_TEXT_COLOR;
-        }
-
-        int axisLineColor;
-        try {
-            axisLineColor = ContextCompat.getColor(context, R.color.tchart_axis_line);
-        } catch (Resources.NotFoundException e) {
-            axisLineColor = AXIS_LINE_COLOR;
-        }
-
-        int cursorLineColor;
-        try {
-            cursorLineColor = ContextCompat.getColor(context, R.color.tchart_cursor_line);
-        } catch (Resources.NotFoundException e) {
-            cursorLineColor = CURSOR_LINE_COLOR;
-        }
+        final int axisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_text_color, AXIS_TEXT_COLOR);
+        final int axisLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_line_color, AXIS_LINE_COLOR);
+        final int cursorLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_cursor_line_color, CURSOR_LINE_COLOR);
+        final int backColor = ChartUtils.getThemedColor(context, R.attr.app_background_color, Color.WHITE);
 
         linesMarkerFillPaint = new Paint();
         linesMarkerFillPaint.setAntiAlias(true);
-        linesMarkerFillPaint.setColor(Color.WHITE);  // sets in onDraw
+        // activity background as fill color
+        linesMarkerFillPaint.setColor(backColor);
         linesMarkerFillPaint.setStyle(Paint.Style.FILL);
 
         axisTextPaint = new Paint();
@@ -296,7 +281,7 @@ public class MainChartView extends AbsChartView {
         cursorPopupWindow.setTouchable(true);
         cursorPopupWindow.setOutsideTouchable(true);
         // В v16 без задания setBackgroundDrawable не работает Touchable/OutsideTouchable. Задание TRANSPARENT и
-        // использование @drawable/round_rect_shape в xml-разметке работают как нужно (в v17 и v27).
+        // использование @drawable/round_rect_shape_light в xml-разметке работают как нужно (в v17 и v27).
         cursorPopupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         cursorPopupWindow.setTouchInterceptor(new OnTouchListener() {
             @Override
@@ -430,8 +415,6 @@ public class MainChartView extends AbsChartView {
         canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, helperLinePaint);
 
         final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
-
-        //linesMarkerFillPaint.setColor(Color.WHITE);  // TODO: use canvas background color
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
             if (invisibleLinesIndexes.contains(i)) {

@@ -2,6 +2,7 @@ package com.github.alunegov.tchart;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.support.v4.content.ContextCompat;
 import android.text.format.DateFormat;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import android.util.TypedValue;
 import org.jetbrains.annotations.NotNull;
 
 public class ChartUtils {
@@ -101,5 +103,21 @@ public class ChartUtils {
     public static @NotNull String getMarkerDateFormatTemplate(@NotNull Context context) {
         final String res = getAxisDateFormatTemplate(context);
         return "EEE, " + res;
+    }
+
+    public static int getThemedColor(@NotNull Context context, int resId, int defColor) {
+        int res;
+        final TypedValue ta = new TypedValue();
+        final boolean isResolved = context.getTheme().resolveAttribute(resId, ta, true);
+        if (isResolved) {
+            if (ta.resourceId != 0) {
+                res = ContextCompat.getColor(context, ta.resourceId);
+            } else {
+                res = ta.data;
+            }
+        } else {
+            res = defColor;
+        }
+        return res;
     }
 }

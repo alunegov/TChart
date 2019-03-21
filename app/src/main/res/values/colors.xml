@@ -1,14 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
-    <color name="tchart_title">#3896D4</color>
-    <color name="tchart_axis_text">#96A2AA</color>
-    <color name="tchart_axis_line">#F1F1F2</color>
-    <color name="tchart_cursor_line">#E5EBEF</color>
-    <color name="tchart_preview_faded">#C8F5F8F9</color>
-    <color name="tchart_preview_frame">#DBE7F0</color>
-    <color name="tchart_line_name_text">#222222</color>
-    <color name="app_background">#FFFFFF</color>
+    <!-- Light theme !-->
+    <color name="colorPrimary_Light">#517DA2</color>
+    <color name="colorPrimaryDark_Light">#426382</color>
+    <color name="colorAccent_Light">#FF4081</color>
+    <color name="tchart_title_Light">#3896D4</color>
+    <color name="tchart_axis_text_Light">#96A2AA</color>
+    <color name="tchart_axis_line_Light">#F1F1F2</color>
+    <color name="tchart_cursor_line_Light">#E5EBEF</color>
+    <color name="tchart_preview_faded_Light">#C8F5F8F9</color>
+    <color name="tchart_preview_frame_Light">#DBE7F0</color>
+    <color name="tchart_line_name_text_Light">#222222</color>
+    <color name="app_background_Light">#FFFFFF</color>
+
+    <!-- Dark theme !-->
+    <color name="colorPrimary_Dark">#212D3B</color>
+    <color name="colorPrimaryDark_Dark">#1A242E</color>
+    <color name="colorAccent_Dark">#FF4081</color>
+    <color name="tchart_title_Dark">#7BC4FB</color>
+    <color name="tchart_axis_text_Dark">#4B5E6C</color>
+    <color name="tchart_axis_line_Dark">#18212D</color>
+    <color name="tchart_cursor_line_Dark">#151E28</color>
+    <color name="tchart_preview_faded_Dark">#C819232E</color>
+    <color name="tchart_preview_frame_Dark">#2B4256</color>
+    <color name="tchart_line_name_text_Dark">#FAFAFA</color>
+    <color name="app_background_Dark">#1D2733</color>
+
 </resources>

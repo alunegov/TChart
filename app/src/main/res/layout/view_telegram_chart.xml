@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/tchart_vertical_margin"
         android:text="@string/dummy"
-        android:textColor="@color/tchart_title"/>
+        android:textColor="?attr/tchart_title_color"/>
     <com.github.alunegov.tchart.MainChartView
         android:id="@+id/main_chart"
         android:layout_width="match_parent"
