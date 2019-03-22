@@ -1,11 +1,9 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.*;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
-import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
@@ -18,10 +16,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +46,6 @@ public class MainChartView extends AbsChartView {
     private static final int Y_AXIS_TEXT_VERTICAL_MARGIN_DP = 7;
     private static final int X_AXIS_TEXT_VERTICAL_MARGIN_DP = 3;
 
-    private float lineWidth;
     private int cursorPopupTopShift, cursorPopupTopMargin;
     private float markerRadius, markerFillRadius;
     private float yAxisTextVerticalMargin;
@@ -99,7 +93,7 @@ public class MainChartView extends AbsChartView {
         yAxisTextVerticalMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, Y_AXIS_TEXT_VERTICAL_MARGIN_DP, dm);
 
         final String cursorDateFormatTemplate = ChartUtils.getMarkerDateFormatTemplate(context);
-        cursorDateCnv = new XAxisConverter(context, cursorDateFormatTemplate);
+        cursorDateCnv = new XAxisConverter(cursorDateFormatTemplate);
 
         final int axisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_text_color, AXIS_TEXT_COLOR);
         final int axisLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_line_color, AXIS_LINE_COLOR);
@@ -133,14 +127,11 @@ public class MainChartView extends AbsChartView {
         //invalidate();
     }
 
+    @Override
     public void setInputData(@NotNull ChartInputData inputData) {
-        this.inputData = inputData;
+        super.setInputData(inputData);
 
-        drawData = new ChartDrawData(inputData);
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
-        drawData.setXRange(0, inputData.XValues.length - 1);
-
-        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
 
         //invalidate();
     }
@@ -149,16 +140,21 @@ public class MainChartView extends AbsChartView {
         if (drawData == null) {
             return;
         }
+        assert cursorIndex == NO_CURSOR;
 
-        drawData.setXRange(xLeftValue, xRightValue);
+        drawData.setXRange(xLeftValue, xRightValue, true);
 
-        if (cursorIndex != NO_CURSOR) {
-            // should never got here with cursorPopupWindow.setOutsideTouchable(true)
-            cursorIndex = NO_CURSOR;
+        invalidate();
+    }
 
-            assert cursorPopupWindow != null;
-            cursorPopupWindow.dismiss();
+    public void setXYRange(float xLeftValue, float xRightValue, int yMin, int yMax) {
+        if (drawData == null) {
+            return;
         }
+        assert cursorIndex == NO_CURSOR;
+
+        drawData.setXRange(xLeftValue, xRightValue, false);
+        drawData.setYRange(yMin, yMax);
 
         invalidate();
     }
@@ -442,10 +438,10 @@ public class MainChartView extends AbsChartView {
         private final @NotNull Date tmpDate = new Date();
 
         public XAxisConverter(@NotNull Context context) {
-            this(context, ChartUtils.getAxisDateFormatTemplate(context));
+            this(ChartUtils.getAxisDateFormatTemplate(context));
         }
 
-        public XAxisConverter(@NotNull Context context, @NotNull String template) {
+        public XAxisConverter(@NotNull String template) {
             dateFormat = new SimpleDateFormat(template, Locale.getDefault());
         }
 

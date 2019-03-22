@@ -1,9 +1,7 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.*;
-import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
@@ -28,7 +26,6 @@ public class PreviewChartView extends AbsChartView {
     // Cache the touch slop from the context that created the view.
     private int mTouchSlop;
 
-    private float lineWidth;
     private float borderHorizontalWidth, borderVerticalHeight;
     private float touchSlop1, touchSlop2;
 
@@ -82,19 +79,24 @@ public class PreviewChartView extends AbsChartView {
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
-        drawData = new ChartDrawData(inputData);
-        drawData.setXRange(0, inputData.XValues.length - 1);
+        super.setInputData(inputData);
 
         zoneLeftValue = inputData.XValues[inputData.XValues.length * 4 / 6];  // TODO: starting zoneLeft?
         zoneRightValue = inputData.XValues[inputData.XValues.length - 1];
 
-        if (onChangeListener != null) {
-            onChangeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
-        }
+        updateZoneLeftBorder(false);
+        updateZoneRightBorder(false);
 
-        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
+        // оповещение через onChangeListener. если нужно получить зону, то есть getZone
 
         //invalidate();
+    }
+
+    public void getZone(@NotNull float[] zone) {
+        assert (zone != null) && (zone.length == 2);
+
+        zone[0] = zoneLeftValue;
+        zone[1] = zoneRightValue;
     }
 
     @Override
@@ -105,10 +107,8 @@ public class PreviewChartView extends AbsChartView {
 
         drawData.setArea(new RectF(0, 0, w, h));
 
-        float px = drawData.xToPixel(zoneLeftValue);
-        zoneLeftBorder.set(px, 0, px + borderHorizontalWidth, h);
-        px = drawData.xToPixel(zoneRightValue);
-        zoneRightBorder.set(px - borderHorizontalWidth, 0, px, h);
+        updateZoneLeftBorder(true);
+        updateZoneRightBorder(true);
 
         //invalidate();
     }
@@ -182,7 +182,7 @@ public class PreviewChartView extends AbsChartView {
 
                             zoneLeftValue = drawData.pixelToX(newX);
 
-                            updateZoneLeftBorder();
+                            updateZoneLeftBorder(false);
 
                             break;
 
@@ -196,7 +196,7 @@ public class PreviewChartView extends AbsChartView {
 
                             zoneRightValue = drawData.pixelToX(newX);
 
-                            updateZoneRightBorder();
+                            updateZoneRightBorder(false);
 
                             break;
 
@@ -213,8 +213,8 @@ public class PreviewChartView extends AbsChartView {
                             zoneLeftValue = drawData.pixelToX(newX);
                             zoneRightValue = drawData.pixelToX(newX + zoneWidth);
 
-                            updateZoneLeftBorder();
-                            updateZoneRightBorder();
+                            updateZoneLeftBorder(false);
+                            updateZoneRightBorder(false);
 
                             break;
                     }
@@ -238,14 +238,22 @@ public class PreviewChartView extends AbsChartView {
         return ((left - leftSlop) <= x) && (x <= (right + rightSlop));
     }
 
-    private void updateZoneLeftBorder() {
+    private void updateZoneLeftBorder(boolean doVertical) {
         zoneLeftBorder.left = drawData.xToPixel(zoneLeftValue);
         zoneLeftBorder.right = zoneLeftBorder.left + borderHorizontalWidth;
+        if (doVertical) {
+            zoneLeftBorder.top = 0;
+            zoneLeftBorder.bottom = getHeight();
+        }
     }
 
-    private void updateZoneRightBorder() {
+    private void updateZoneRightBorder(boolean doVertical) {
         zoneRightBorder.right = drawData.xToPixel(zoneRightValue);
         zoneRightBorder.left = zoneRightBorder.right - borderHorizontalWidth;
+        if (doVertical) {
+            zoneRightBorder.top = 0;
+            zoneRightBorder.bottom = getHeight();
+        }
     }
 
     @Override

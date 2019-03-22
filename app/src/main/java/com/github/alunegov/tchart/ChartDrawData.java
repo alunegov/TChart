@@ -63,18 +63,19 @@ public class ChartDrawData {
         this.area.set(area);
         this.areaSet = true;
 
-        update();
+        //updateYRange();
+        updateScales();
+        updateLinesAndAxis();
     }
 
-    public float getXLeftValue() {
-        return xLeftValue;
+    public void getXRange(@NotNull float[] range) {
+        assert (range != null) && (range.length == 2);
+
+        range[0] = xLeftValue;
+        range[1] = xRightValue;
     }
 
-    public float getXRightValue() {
-        return xRightValue;
-    }
-
-    public void setXRange(float xLeftValue, float xRightValue) {
+    public void setXRange(float xLeftValue, float xRightValue, boolean doUpdate) {
         this.xLeftValue = xLeftValue;
         xLeftIndex = findXLeftIndex(xLeftValue);
         xLeftSet = true;
@@ -83,19 +84,11 @@ public class ChartDrawData {
         xRightIndex = findXRightIndex(xRightValue, xLeftIndex);
         xRightSet = true;
 
-        update();
-    }
-
-    public void setXRange(int xLeftIndex, int xRightIndex) {
-        this.xLeftIndex = xLeftIndex;
-        xLeftValue = inputData.XValues[xLeftIndex];
-        xLeftSet = true;
-
-        this.xRightIndex = xRightIndex;
-        xRightValue = inputData.XValues[xRightIndex];
-        xRightSet = true;
-
-        update();
+        if (doUpdate) {
+            updateYRange();
+            updateScales();
+            updateLinesAndAxis();
+        }
     }
 
     public @NotNull Set<Integer> getInvisibleLinesIndexes() {
@@ -106,35 +99,82 @@ public class ChartDrawData {
         return isAllLinesInvisible;
     }
 
-    public void updateLineVisibility(int lineIndex, boolean visible) {
-        if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
-            return;
-        }
-
+    public static void updateLineVisibility(@NotNull Set<Integer> invisibleLinesIndexes, int lineIndex, boolean visible) {
         if (visible) {
             invisibleLinesIndexes.remove(lineIndex);
         } else {
             invisibleLinesIndexes.add(lineIndex);
         }
-
-        update();
     }
 
-    public int getYMin() {
-        return yMin;
+    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
+        if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
+            return;
+        }
+
+        updateLineVisibility(invisibleLinesIndexes, lineIndex, visible);
+
+        if (doUpdate) {
+            updateYRange();
+            updateScales();
+            updateLinesAndAxis();
+        }
     }
 
-    public int getYMax() {
-        return yMax;
+    public void getYRange(@NotNull int[] range) {
+        assert (range != null) && (range.length == 2);
+
+        range[0] = yMin;
+        range[1] = yMax;
     }
 
-    public float getXScale() {
+    public void setYRange(int yMin, int yMax) {
+        this.yMin = yMin;
+        this.yMax = yMax;
+
+        updateScales();
+        updateLinesAndAxis();
+    }
+
+    public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull Set<Integer> invisibleLinesIndexes, @NotNull int[] range) {
+        assert (range != null) && (range.length == 2);
+
+        final @NotNull int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, invisibleLinesIndexes);
+
+        int yMinAt;
+        switch (yMinMode) {
+            case RANGE:
+                yMinAt = yMinMax[0];
+                break;
+            case ZERO:
+                assert yMinMax[0] >= 0;
+                yMinAt = 0;
+                break;
+            default:
+                yMinAt = 0;
+        }
+
+        // добавляем к максимуму часть размаха, чтобы сверху было немного места (так на ref, была видна пометка точки)
+        final int yMaxAt = yMinMax[1] + (int) (0.05 * (yMinMax[1] - yMin));
+
+        range[0] = yMinAt;
+        range[1] = yMaxAt;
+    }
+
+    public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull Set<Integer> invisibleLinesIndexes, @NotNull int[] range) {
+        final int xLeftIndexAt = findXLeftIndex(xLeftValue);
+        final int xRightIndexAt = findXRightIndex(xRightValue, xLeftIndexAt);
+
+        calcYRangeAt(xLeftIndexAt, xRightIndexAt, invisibleLinesIndexes, range);
+    }
+
+    /*public float getXScale() {
         return scaleX;
-    }
+    }*/
 
-    public float getYScale() {
+    /*public float getYScale() {
         return scaleY;
-    }
+    }*/
 
     public @NotNull Path[] getLinesPaths() {
         return linesPaths;
@@ -148,33 +188,26 @@ public class ChartDrawData {
         return yAxisMarks;
     }
 
-    private void update() {
+    private void updateYRange() {
+        final @NotNull int[] yRange = new int[2];
+        calcYRangeAt(xLeftIndex, xRightIndex, invisibleLinesIndexes, yRange);
+
+        yMin = yRange[0];
+        yMax = yRange[1];
+    }
+
+    private void updateScales() {
+        scaleX = area.width() / Math.abs(xRightValue - xLeftValue);
+        scaleY = area.height() / (float) Math.abs(yMax - yMin);
+    }
+
+    private void updateLinesAndAxis() {
         if (!areaSet) {
             return;
         }
         if (!xLeftSet || !xRightSet) {
             return;
         }
-
-        final int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, invisibleLinesIndexes);
-
-        switch (yMinMode) {
-            case RANGE:
-                yMin = yMinMax[0];
-                break;
-            case ZERO:
-                assert yMinMax[0] >= 0;
-                yMin = 0;
-                break;
-            default:
-                yMin = 0;
-        }
-
-        // добавляем к максимуму часть размаха, чтобы сверху было немного места (так на ref, была видна пометка точки)
-        yMax = yMinMax[1] + (int) (0.05 * (yMinMax[1] - yMin));
-
-        scaleX = area.width() / Math.abs(xRightValue - xLeftValue);
-        scaleY = area.height() / (float) Math.abs(yMax - yMin);
 
         int visibleLinesCount = 0;
 
@@ -257,8 +290,10 @@ public class ChartDrawData {
 
         final float xSwing = Math.abs(xRightValue - xLeftValue);
 
-        final long stepValue = (long) (xSwing / axisLineCount);
+        long stepValue = (long) (xSwing / axisLineCount);
         // TODO: beautify step?
+        final long msecPerDay = 24 * 60 * 60 * 1000L;
+        stepValue = stepValue / msecPerDay * msecPerDay;
 
         final float stepPixel = stepValue * scaleX;
         if (stepPixel <= 0) {
@@ -268,6 +303,11 @@ public class ChartDrawData {
         // начало отсчёта
         final long startXValue = (long) (xLeftValue / stepValue) * stepValue;
         final float startXPixel = xToPixel(startXValue);
+        //DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault());
+        //Log.v("CDD", String.format("left = %f, right = %f, swing = %f, start = %s, scaleX = %f", xLeftValue, xRightValue, xSwing, df.format(new Date(startXValue)), 1f / scaleX));
+
+        Log.v("CDD", String.format("xSwing = %s stepValue = %s startXValue = %s",
+                DateUtils.formatElapsedTime((long) (xSwing / 1000)), DateUtils.formatElapsedTime((long) (stepValue / 1000)), new Date(startXValue).toString()));
 
         final float w = area.width();
 
