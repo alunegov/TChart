@@ -6,7 +6,7 @@
 
     <solid android:color="@color/app_background_Light" />
 
-    <stroke android:width="2dp" android:color="@color/tchart_axis_line_Light" />
+    <stroke android:width="1dp" android:color="#DBDBDB" />
 
     <corners
         android:bottomLeftRadius="8dp"

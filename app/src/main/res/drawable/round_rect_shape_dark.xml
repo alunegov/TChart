@@ -4,9 +4,9 @@
     android:shape="rectangle"
     >
 
-    <solid android:color="@color/app_background_Dark" />
+    <solid android:color="#202B38" />
 
-    <stroke android:width="2dp" android:color="@color/tchart_axis_line_Dark" />
+    <stroke android:width="1dp" android:color="#18222C" />
 
     <corners
         android:bottomLeftRadius="8dp"
