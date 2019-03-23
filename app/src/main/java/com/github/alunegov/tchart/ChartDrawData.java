@@ -281,6 +281,9 @@ public class ChartDrawData {
         return (axisLineCount > 0) && (xAxisTextConv != null);
     }
 
+    private static final long MSEC_PER_HOUR = 60 * 60 * 1000L;
+    private static final long MSEC_PER_DAY = 24 * MSEC_PER_HOUR;
+
     private void updateXAxisMarks() {
         assert xAxisMarks != null;
         assert axisLineCount > 0;
@@ -291,9 +294,13 @@ public class ChartDrawData {
         final float xSwing = Math.abs(xRightValue - xLeftValue);
 
         long stepValue = (long) (xSwing / axisLineCount);
-        // TODO: beautify step?
-        final long msecPerDay = 24 * 60 * 60 * 1000L;
-        stepValue = stepValue / msecPerDay * msecPerDay;
+
+        // beautify step
+        if (stepValue > MSEC_PER_DAY) {
+            stepValue = stepValue / MSEC_PER_DAY * MSEC_PER_DAY;
+        } else {
+            stepValue = stepValue / MSEC_PER_HOUR * MSEC_PER_HOUR;
+        }
 
         final float stepPixel = stepValue * scaleX;
         if (stepPixel <= 0) {
@@ -305,9 +312,6 @@ public class ChartDrawData {
         final float startXPixel = xToPixel(startXValue);
         //DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault());
         //Log.v("CDD", String.format("left = %f, right = %f, swing = %f, start = %s, scaleX = %f", xLeftValue, xRightValue, xSwing, df.format(new Date(startXValue)), 1f / scaleX));
-
-        Log.v("CDD", String.format("xSwing = %s stepValue = %s startXValue = %s",
-                DateUtils.formatElapsedTime((long) (xSwing / 1000)), DateUtils.formatElapsedTime((long) (stepValue / 1000)), new Date(startXValue).toString()));
 
         final float w = area.width();
 
