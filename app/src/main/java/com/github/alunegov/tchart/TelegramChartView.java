@@ -1,19 +1,14 @@
 package com.github.alunegov.tchart;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.support.v4.view.animation.FastOutLinearInInterpolator;
-import android.support.v4.view.animation.LinearOutSlowInInterpolator;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -62,7 +57,6 @@ public class TelegramChartView extends LinearLayout {
 
         zoneChangeAnimator.setInterpolator(new LinearInterpolator());
         zoneChangeAnimator.setDuration(100);
-        zoneChangeAnimator.addListener(zoneChangeAnimatorListener);
         zoneChangeAnimator.addUpdateListener(zoneChangeAnimatorUpdateListener);
 
         lineVisibilityAnimator.setInterpolator(new LinearInterpolator());
@@ -96,7 +90,10 @@ public class TelegramChartView extends LinearLayout {
         public void onZoneChanged(float zoneLeftValue, float zoneRightValue) {
             //zoneChangeAnimator.cancel();
 
+            //Log.v("TCV", String.format("left = %f, right = %f, swing = %f onZoneChanged", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
+
             if (zoneChangeAnimator.isStarted()) {
+                //Log.v("TCV", "pending");
                 zoneLeftValuePending = zoneLeftValue;
                 zoneRightValuePending = zoneRightValue;
                 isPendingZoneChangeAnimation = true;
@@ -104,16 +101,22 @@ public class TelegramChartView extends LinearLayout {
             }
 
             startZoneChangeAnimation(zoneLeftValue, zoneRightValue);
-        }
-    };
 
-    private final @NotNull Animator.AnimatorListener zoneChangeAnimatorListener = new AnimatorListenerAdapter() {
-        @Override
-        public void onAnimationEnd(Animator animation) {
-            if (isPendingZoneChangeAnimation) {
-                isPendingZoneChangeAnimation = false;
-                startZoneChangeAnimation(zoneLeftValuePending, zoneRightValuePending);
-            }
+            // AnimatorListener.onAnimationEnd not working right - sometimes it not fires.
+            // https://stackoverflow.com/a/18683419/2968990
+            final Handler h = new Handler();
+            h.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    //Log.v("TCV", String.format("run gotPending = %s", isPendingZoneChangeAnimation));
+                    if (isPendingZoneChangeAnimation) {
+                        isPendingZoneChangeAnimation = false;
+                        startZoneChangeAnimation(zoneLeftValuePending, zoneRightValuePending);
+
+                        h.postDelayed(this, zoneChangeAnimator.getDuration());
+                    }
+                }
+            }, zoneChangeAnimator.getDuration());
         }
     };
 
@@ -122,6 +125,7 @@ public class TelegramChartView extends LinearLayout {
         mainChartView.getXRange(startXRange);
         final PropertyValuesHolder xl = PropertyValuesHolder.ofFloat("xl", startXRange[0], zoneLeftValue);
         final PropertyValuesHolder xr = PropertyValuesHolder.ofFloat("xr", startXRange[1], zoneRightValue);
+        //Log.v("TCV", String.format("left = %f, right = %f, swing = %f startZoneChangeAnimation", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
 
         final int[] startYRange = new int[2];
         final int[] stopYRange = new int[2];
@@ -140,6 +144,7 @@ public class TelegramChartView extends LinearLayout {
             final float xr = (float) animation.getAnimatedValue("xr");
             final int ymin = (int) animation.getAnimatedValue("ymin");
             final int ymax = (int) animation.getAnimatedValue("ymax");
+            //Log.v("TCV", String.format("left = %f, right = %f, swing = %f setXYRange", xl, xr, xr - xl));
 
             mainChartView.setXYRange(xl, xr, ymin, ymax);
         }
