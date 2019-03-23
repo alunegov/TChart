@@ -25,4 +25,11 @@
         android:layout_height="wrap_content"
         />
 
+    <LinearLayout
+        android:id="@+id/cursor_values2"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+
 </LinearLayout>

@@ -284,7 +284,7 @@ public class MainChartView extends AbsChartView {
         cursorPopupWindow.setTouchable(true);
         cursorPopupWindow.setOutsideTouchable(true);
         // В v16 без задания setBackgroundDrawable не работает Touchable/OutsideTouchable. Задание TRANSPARENT и
-        // использование @drawable/round_rect_shape_light в xml-разметке работают как нужно (в v17 и v27).
+        // использование @drawable/round_rect_shape_light в xml-разметке работают как нужно (в v16 и v27).
         cursorPopupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         cursorPopupWindow.setTouchInterceptor(new OnTouchListener() {
             @Override
@@ -327,8 +327,10 @@ public class MainChartView extends AbsChartView {
         dateTextView.setText(cursorDateCnv.toText(inputData.XValues[cursorIndex]));
 
         // значения линий
-        LinearLayout valuesLayout = (LinearLayout) popupView.findViewById(R.id.cursor_values);
+        final LinearLayout valuesLayout = (LinearLayout) popupView.findViewById(R.id.cursor_values);
         assert valuesLayout != null;
+        final LinearLayout values2Layout = (LinearLayout) popupView.findViewById(R.id.cursor_values2);
+        assert values2Layout != null;
 
         final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         assert inflater != null;
@@ -336,13 +338,19 @@ public class MainChartView extends AbsChartView {
         final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
 
         valuesLayout.removeAllViews();
+        values2Layout.removeAllViews();
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
             if (invisibleLinesIndexes.contains(i)) {
                 continue;
             }
 
-            final View view = inflater.inflate(R.layout.view_cursor_value_list_item, valuesLayout, false);
+            View view;
+            if (i < 2) {
+                view = inflater.inflate(R.layout.view_cursor_value_list_item, valuesLayout, false);
+            } else {
+                view = inflater.inflate(R.layout.view_cursor_value_list_item, values2Layout, false);
+            }
 
             final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
             valueTextBox.setText(String.valueOf(inputData.LinesValues[i][cursorIndex]));
@@ -352,7 +360,11 @@ public class MainChartView extends AbsChartView {
             lineNameTextBox.setText(inputData.LinesNames[i]);
             lineNameTextBox.setTextColor(inputData.LinesColors[i]);
 
-            valuesLayout.addView(view);
+            if (i < 2) {
+                valuesLayout.addView(view);
+            } else {
+                values2Layout.addView(view);
+            }
         }
     }
 

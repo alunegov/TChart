@@ -33,10 +33,11 @@
 
 - [x] при повороте экрана все имена линий становятся "#3" (имя последней линии последнего графика)
   - https://stackoverflow.com/questions/2512010/android-checkbox-restoring-state-after-screen-rotation
-- [ ] в последнем значении в cursorPopup срабатывает перенос слов
+- [x] в последнем значении в cursorPopup срабатывает перенос слов
   - hack - можно сделать в разметке cursor_popup 2 ряда LinearLayout - cursor_values_1 и cursor_values_2
 - [x] стабильные даты по X при изменении масштаба
-- [ ] картинка mode_icon в разных размерах, или svg (material.io)
+- [x] картинка mode_icon в разных размерах, или svg (material.io)
+  - won't fix. странный засвет при нажатии только на v16
 - [x] при старте не нужна первая анимация onZoneChanged
 - [x] зоны TOUCH_SLOP
   - увеличить зону TOUCH_SLOP2, когда граница находится у краёв экрана
