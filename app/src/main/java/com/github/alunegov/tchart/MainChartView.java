@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.support.v7.widget.ViewUtils;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
@@ -409,6 +410,7 @@ public class MainChartView extends AbsChartView {
         final List<ChartDrawData.AxisMark> marks = drawData.getYAxisMarks();
         assert marks != null;
 
+        boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
         final int w = getWidth();
 
         for (ChartDrawData.AxisMark mark: marks) {
@@ -416,7 +418,13 @@ public class MainChartView extends AbsChartView {
 
             canvas.drawLine(0, y, w, y, yAxisLinePaint);
 
-            canvas.drawText(mark.getText(), 0, y - yAxisTextVerticalMargin, axisTextPaint);
+            float x;
+            if (isLayoutRtl) {
+                x = w - axisTextPaint.measureText(mark.getText());
+            } else {
+                x = 0;
+            }
+            canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, axisTextPaint);
         }
     }
 

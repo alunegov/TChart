@@ -57,7 +57,8 @@
   - https://stackoverflow.com/questions/4037795/android-spacing-between-checkbox-and-text
 - [x] первым делом проверять на попадание в зону MoveMode.LEFT_AND_RIGHT
 - [ ] performClick? ripple при тапе?
-- [ ] rtl языки
+- [x] rtl языки
+  - адаптировал только положение значений оцифровки оси Y. Течение времени не зеркалим (https://material.io/design/usability/bidirectionality.html#mirroring-elements)
 - [x] не блокировать скроллинг у родителя (requestDisallowInterceptTouchEvent), если начальное перемещение было по вертикали
 - [x] использовать ListView для вывода нескольких графиков
   - при переиспользовании вида нужно восстанавливать выделенную область, курсоры и т.п. - won't fix.
