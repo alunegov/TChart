@@ -11,6 +11,7 @@
     <color name="tchart_preview_faded_Light">#C8F5F8F9</color>
     <color name="tchart_preview_frame_Light">#DBE7F0</color>
     <color name="tchart_line_name_text_Light">#222222</color>
+    <color name="tchart_line_name_divider_Light">#E0E0E0</color>
     <color name="app_background_Light">#FFFFFF</color>
 
     <!-- Dark theme !-->
@@ -24,6 +25,7 @@
     <color name="tchart_preview_faded_Dark">#C819232E</color>
     <color name="tchart_preview_frame_Dark">#2B4256</color>
     <color name="tchart_line_name_text_Dark">#FAFAFA</color>
+    <color name="tchart_line_name_divider_Dark">#0E1722</color>
     <color name="app_background_Dark">#1D2733</color>
 
 </resources>

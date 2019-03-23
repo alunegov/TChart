@@ -14,6 +14,7 @@
     <attr name="tchart_preview_faded_color" format="reference|color" />
     <attr name="tchart_preview_frame_color" format="reference|color" />
     <attr name="tchart_line_name_text_color" format="reference|color" />
+    <attr name="tchart_line_name_divider_color" format="reference|color" />
     <attr name="app_background_color" format="reference|color" />
     <attr name="round_rect_shape" format="reference" />
     <attr name="mode_icon" format="reference" />

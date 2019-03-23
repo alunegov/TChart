@@ -68,6 +68,12 @@ public class LineNameListView extends LinearLayout {
             cb.setTag(i);
             cb.setOnCheckedChangeListener(lineVisibilityOnCheckedChangeListener);
 
+            if (i == (lineNames.length - 1)) {
+                final View dividerView = view.findViewById(R.id.lines_divider);
+
+                dividerView.setVisibility(GONE);
+            }
+
             addView(view);
         }
 

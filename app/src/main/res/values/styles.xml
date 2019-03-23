@@ -12,6 +12,7 @@
         <item name="tchart_preview_faded_color">@color/tchart_preview_faded_Light</item>
         <item name="tchart_preview_frame_color">@color/tchart_preview_frame_Light</item>
         <item name="tchart_line_name_text_color">@color/tchart_line_name_text_Light</item>
+        <item name="tchart_line_name_divider_color">@color/tchart_line_name_divider_Light</item>
         <item name="app_background_color">@color/app_background_Light</item>
         <item name="round_rect_shape">@drawable/round_rect_shape_light</item>
         <item name="mode_icon">@mipmap/mode_icon_light</item>
@@ -29,6 +30,7 @@
         <item name="tchart_preview_faded_color">@color/tchart_preview_faded_Dark</item>
         <item name="tchart_preview_frame_color">@color/tchart_preview_frame_Dark</item>
         <item name="tchart_line_name_text_color">@color/tchart_line_name_text_Dark</item>
+        <item name="tchart_line_name_divider_color">@color/tchart_line_name_divider_Dark</item>
         <item name="app_background_color">@color/app_background_Dark</item>
         <item name="round_rect_shape">@drawable/round_rect_shape_dark</item>
         <item name="mode_icon">@mipmap/mode_icon_dark</item>
