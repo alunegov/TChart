@@ -34,11 +34,11 @@ public class ChartInputData {
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
 
-        for (int j = l; j <= r; j++) {
-            for (int i = 0; i < LinesValues.length; i++) {
-                if (invisibleLinesIndexes.contains(i)) {
-                    continue;
-                }
+        for (int i = 0; i < LinesValues.length; i++) {
+            if (invisibleLinesIndexes.contains(i)) {
+                continue;
+            }
+            for (int j = l; j <= r; j++) {
                 int val = LinesValues[i][j];
                 if (val < min) {
                     min = val;

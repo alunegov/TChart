@@ -211,6 +211,9 @@ public class ChartDrawData {
 
         int visibleLinesCount = 0;
 
+        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
 
@@ -220,13 +223,17 @@ public class ChartDrawData {
             }
 
             linesPaths[j].moveTo(
-                    xToPixel(inputData.XValues[xLeftIndex]),
-                    yToPixel(inputData.LinesValues[j][xLeftIndex])
+                    //xToPixel(inputData.XValues[xLeftIndex]),
+                    xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
+                    //yToPixel(inputData.LinesValues[j][xLeftIndex])
+                    yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linesPaths[j].lineTo(
-                        xToPixel(inputData.XValues[i]),
-                        yToPixel(inputData.LinesValues[j][i])
+                        //xToPixel(inputData.XValues[i]),
+                        xToPixelHelper + inputData.XValues[i] * scaleX,
+                        //yToPixel(inputData.LinesValues[j][i])
+                        yToPixelHelper - inputData.LinesValues[j][i] * scaleY
                 );
             }
 
@@ -241,6 +248,7 @@ public class ChartDrawData {
         }
     }
 
+    // TODO: метод половинного деления (для findXRightIndex тоже)?
     public int findXLeftIndex(float xValue) {
         for (int i = 0; i < inputData.XValues.length; i++) {
             if (inputData.XValues[i] == xValue) {
