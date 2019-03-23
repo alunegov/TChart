@@ -21,13 +21,13 @@ public class PreviewChartView extends AbsChartView {
     private static final float BORDER_VERTICAL_HEIGHT_DP = 1.5f;
 
     private static final int TOUCH_SLOP1_DP = 40;
-    private static final int TOUCH_SLOP2_DP = 10;
+    private static final float TOUCH_SLOP2_PERCENT = 0.1f;
 
     // Cache the touch slop from the context that created the view.
     private int mTouchSlop;
 
     private float borderHorizontalWidth, borderVerticalHeight;
-    private float touchSlop1, touchSlop2;
+    private float touchSlop1;
 
     private OnChangeListener onChangeListener;
     private MoveMode moveMode = MoveMode.NOP;
@@ -56,7 +56,6 @@ public class PreviewChartView extends AbsChartView {
         borderHorizontalWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_HORIZONTAL_WIDTH_DP, dm);
         borderVerticalHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_VERTICAL_HEIGHT_DP, dm);
         touchSlop1 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP1_DP, dm);
-        touchSlop2 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP2_DP, dm);
 
         final int fadedColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_faded_color, FADED_COLOR);
         final int frameColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_frame_color, FRAME_COLOR);
@@ -120,15 +119,18 @@ public class PreviewChartView extends AbsChartView {
         }
 
         final float x = event.getX();
-        float newX, moveDelta, zoneWidth;
+        float newX, moveDelta, zoneWidth, touchSlop2;
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                // расширение области для перетаскивания внутри зоны - 10% от ширины зоны.
+                touchSlop2 = (zoneRightBorder.right - zoneLeftBorder.left) * TOUCH_SLOP2_PERCENT;
+
                 if (inTouchZone(zoneLeftBorder.right, zoneRightBorder.left, x, -touchSlop2, -touchSlop2)) {
                     moveMode = MoveMode.LEFT_AND_RIGHT;
-                } else if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, touchSlop1, touchSlop2)) {
+                } else if (inTouchZone(zoneLeftBorder.left, zoneLeftBorder.right, x, touchSlop1, touchSlop2) && (x < zoneRightBorder.left)) {
                     moveMode = MoveMode.LEFT;
-                } else if (inTouchZone(zoneRightBorder.left, zoneRightBorder.right, x, touchSlop2, touchSlop1)) {
+                } else if (inTouchZone(zoneRightBorder.left, zoneRightBorder.right, x, touchSlop2, touchSlop1) && (x > zoneLeftBorder.right)) {
                     moveMode = MoveMode.RIGHT;
                 } else {
                     moveMode = MoveMode.NOP;
@@ -176,8 +178,8 @@ public class PreviewChartView extends AbsChartView {
                             newX = zoneLeftBorder.left + moveDelta;
                             if (newX < 0) {
                                 newX = 0;
-                            } else if (newX > zoneRightBorder.left) {
-                                newX = zoneRightBorder.left;
+                            } else if ((newX + borderHorizontalWidth) > zoneRightBorder.left) {
+                                newX = zoneRightBorder.left - borderHorizontalWidth;
                             }
 
                             zoneLeftValue = drawData.pixelToX(newX);
@@ -188,8 +190,8 @@ public class PreviewChartView extends AbsChartView {
 
                         case RIGHT:
                             newX = zoneRightBorder.right + moveDelta;
-                            if (newX < zoneLeftBorder.right) {
-                                newX = zoneLeftBorder.right;
+                            if ((newX - borderHorizontalWidth) < zoneLeftBorder.right) {
+                                newX = zoneLeftBorder.right + borderHorizontalWidth;
                             } else if (newX > getWidth()) {
                                 newX = getWidth();
                             }
