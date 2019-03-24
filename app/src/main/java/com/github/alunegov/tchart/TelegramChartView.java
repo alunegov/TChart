@@ -88,6 +88,8 @@ public class TelegramChartView extends LinearLayout {
     private final PreviewChartView.OnChangeListener previewChartChangeListener = new PreviewChartView.OnChangeListener() {
         @Override
         public void onZoneChanged(float zoneLeftValue, float zoneRightValue) {
+//            mainChartView.setXRange(zoneLeftValue, zoneRightValue);
+
             //zoneChangeAnimator.cancel();
 
             //Log.v("TCV", String.format("left = %f, right = %f, swing = %f onZoneChanged", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
@@ -156,6 +158,9 @@ public class TelegramChartView extends LinearLayout {
     private final LineNameListView.OnCheckedChangeListener lineNamesCheckedChangeListener = new LineNameListView.OnCheckedChangeListener() {
         @Override
         public void onCheckedChange(int lineIndex, boolean isChecked) {
+//            mainChartView.updateLineVisibility(lineIndex, isChecked, true);
+//            previewChartView.updateLineVisibility(lineIndex, isChecked, true);
+
             lineVisibilityAnimator.cancel();
 
             final int[] startYRange = new int[2];

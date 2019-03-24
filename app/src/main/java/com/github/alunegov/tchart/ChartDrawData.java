@@ -36,6 +36,7 @@ public class ChartDrawData {
     private float scaleX, scaleY;
     // отображаемые данные линий (сигналов) в виде Path
     private Path[] linesPaths;
+    private float[][] linesLines;
     // Метки для оцифровки осей
     private List<AxisMark> xAxisMarks, yAxisMarks;
 
@@ -49,6 +50,13 @@ public class ChartDrawData {
         for (int i = 0; i < linesPaths.length; i++) {
             linesPaths[i] = new Path();
         }
+
+        linesLines = new float[inputData.LinesValues.length][];
+        for (int i = 0; i < linesLines.length; i++) {
+            if (BuildConfig.DEBUG && (inputData.XValues.length != inputData.LinesValues[i].length))
+                throw new AssertionError();
+            linesLines[i] = new float[(inputData.XValues.length - 1) * 4];
+        }
     }
 
     public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextConv) {
@@ -57,6 +65,10 @@ public class ChartDrawData {
 
         xAxisMarks = new ArrayList<>();
         yAxisMarks = new ArrayList<>();
+    }
+
+    public @NotNull RectF getArea() {
+        return area;
     }
 
     public void setArea(@NotNull RectF area) {
@@ -73,6 +85,13 @@ public class ChartDrawData {
 
         range[0] = xLeftValue;
         range[1] = xRightValue;
+    }
+
+    public void getXRange(@NotNull int[] range) {
+        assert (range != null) && (range.length == 2);
+
+        range[0] = xLeftIndex;
+        range[1] = xRightIndex;
     }
 
     public void setXRange(float xLeftValue, float xRightValue, boolean doUpdate) {
@@ -168,16 +187,20 @@ public class ChartDrawData {
         calcYRangeAt(xLeftIndexAt, xRightIndexAt, invisibleLinesIndexes, range);
     }
 
-    /*public float getXScale() {
+    public float getXScale() {
         return scaleX;
-    }*/
+    }
 
-    /*public float getYScale() {
+    public float getYScale() {
         return scaleY;
-    }*/
+    }
 
     public @NotNull Path[] getLinesPaths() {
         return linesPaths;
+    }
+
+    public @NotNull float[][] getLinesLines() {
+        return linesLines;
     }
 
     public @Nullable List<AxisMark> getXAxisMarks() {
@@ -209,11 +232,20 @@ public class ChartDrawData {
             return;
         }
 
-        int visibleLinesCount = 0;
+        //
+        isAllLinesInvisible = true;
+        for (int j = 0; j < inputData.LinesValues.length; j++) {
+            if (!invisibleLinesIndexes.contains(j)) {
+                isAllLinesInvisible = false;
+                break;
+            }
+        }
 
+        //
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
         final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
 
+/*        //
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
 
@@ -236,12 +268,34 @@ public class ChartDrawData {
                         yToPixelHelper - inputData.LinesValues[j][i] * scaleY
                 );
             }
+        }*/
 
-            visibleLinesCount++;
+        //
+        for (int j = 0; j < linesLines.length; j++) {
+            // don't calc invisible lines
+            if (invisibleLinesIndexes.contains(j)) {
+                continue;
+            }
+
+            int k = 0;
+            linesLines[j][k] = xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX;
+            linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY;
+            k += 2;
+            for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
+                linesLines[j][k] = xToPixelHelper + inputData.XValues[i] * scaleX;
+                linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][i] * scaleY;
+                linesLines[j][k + 2] = linesLines[j][k];
+                linesLines[j][k + 3] = linesLines[j][k + 1];
+                k += 4;
+            }
+            linesLines[j][k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
+            linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
+
+            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4))
+                throw new AssertionError();
         }
 
-        isAllLinesInvisible = visibleLinesCount == 0;
-
+        //
         if (getIsMarksUpdating()) {
             updateXAxisMarks();
             updateYAxisMarks();

@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -97,14 +99,35 @@ public abstract class AbsChartView extends View {
         assert drawData != null;
         assert linesPaints != null;
 
-        final Path[] paths = drawData.getLinesPaths();
         final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
 
+/*        //
+        final Path[] paths = drawData.getLinesPaths();
         assert paths.length == linesPaints.length;
         for (int i = 0; i < paths.length; i++) {
             if (!invisibleLinesIndexes.contains(i)) {
                 canvas.drawPath(paths[i], linesPaints[i]);
             }
+        }*/
+
+        //
+        final float[][] lines = drawData.getLinesLines();
+
+        final int[] xIndexRange = new int[2];
+        drawData.getXRange(xIndexRange);
+        final int pointsCount = (xIndexRange[1] - xIndexRange[0] + 1 - 1) * 4;
+
+        if (BuildConfig.DEBUG && (lines.length != linesPaints.length))
+            throw new AssertionError();
+        for (int i = 0; i < lines.length; i++) {
+            if (invisibleLinesIndexes.contains(i)) {
+                continue;
+            }
+
+//            if (BuildConfig.DEBUG && (lines[i].length != pointsCount))
+//                throw new AssertionError();
+//            canvas.drawLines(lines[i], linesPaints[i]);
+            canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
         }
     }
 }
