@@ -1,9 +1,5 @@
 apply plugin: 'com.android.application'
 
-def keystorePropertiesFile = rootProject.file("${System.properties['user.home']}/.keystore_props/android_alunegov_keystore.properties")
-def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-
 android {
     compileSdkVersion 23
     buildToolsVersion '27.0.3'
@@ -17,21 +13,29 @@ android {
     }
 
     signingConfigs {
-        config {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-        }
+        release
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.config
+            signingConfig signingConfigs.release
         }
     }
+}
+
+def keystorePropertiesFile = rootProject.file("${System.properties['user.home']}/.keystore_props/android_alunegov_keystore.properties")
+if (keystorePropertiesFile.canRead()) {
+    def keystoreProperties = new Properties()
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+    android.signingConfigs.release.keyAlias = keystoreProperties['keyAlias']
+    android.signingConfigs.release.keyPassword = keystoreProperties['keyPassword']
+    android.signingConfigs.release.storeFile = file(keystoreProperties['storeFile'])
+    android.signingConfigs.release.storePassword = keystoreProperties['storePassword']
+} else {
+    android.buildTypes.release.signingConfig = null
 }
 
 dependencies {
