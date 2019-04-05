@@ -1,6 +1,7 @@
 package com.github.alunegov.tchart;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.List;
 
 import org.junit.Test;
@@ -40,5 +41,19 @@ public class ChartInputDataMapperTest {
         assertEquals(2, c.LinesColors.length);
         assertEquals(FAKE_COLOR, c.LinesColors[0]);
         assertEquals(FAKE_COLOR, c.LinesColors[1]);
-    }
+
+        StringBuilder sb = new StringBuilder();
+        //sb.append("var points = [");
+        c = l.get(4);
+        for (int i = 0; i < c.XValues.length; i++) {
+            //sb.append(String.format("{x:%d.0,y:%d.0},", c.XValues[i], c.LinesValues[0][i]));
+            //sb.append(String.format("%f;%d\r\n", c.XValues[i] / 100000000f, c.LinesValues[0][i]));
+            sb.append(String.format("%d %d\r\n", c.XValues[i], c.LinesValues[0][i]));
+        }
+        //sb.append("];");
+
+        PrintWriter out = new PrintWriter("1.txt");
+        out.println(sb.toString());
+        out.close();
+  }
 }

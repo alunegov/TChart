@@ -1,16 +1,18 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RectF;
+import android.graphics.*;
 import android.os.Build;
+import android.os.Handler;
+import android.support.annotation.UiThread;
 import android.util.AttributeSet;
 import android.view.View;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -42,37 +44,79 @@ public abstract class AbsChartView extends View {
     }
 
     public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
-        if (drawData == null) {
-            return;
-        }
+//        synchronized (lock) {
+            if (drawData == null) {
+                return;
+            }
 
-        drawData.updateLineVisibility(lineIndex, visible, doUpdate);
+            drawData.updateLineVisibility(lineIndex, visible, doUpdate);
 
-        if (doUpdate) {
-            invalidate();
-        }
+            if (doUpdate) {
+                invalidate();
+                //postInvalidateDelayed(12);
+            }
+//        }
     }
 
     public void getYRange(int[] range) {
         drawData.getYRange(range);
     }
 
-    public void setYRange(int yMin, int yMax) {
+    private Executor executor = Executors.newSingleThreadExecutor();
+    protected final @NotNull Object lock = new Object();
+
+    public void setYRange(int yMin, int yMax, boolean doUpdate) {
         if (drawData == null) {
             return;
         }
 
+//        executor.execute(new QQ(yMin, yMax, doUpdate));
+
         drawData.setYRange(yMin, yMax);
 
-        invalidate();
+        if (doUpdate) {
+            //invalidate();
+            postInvalidateDelayed(16);
+        }
+    }
+
+    private class QQ implements Runnable {
+        int yMin;
+        int yMax;
+        boolean doUpdate;
+
+        public QQ(int yMin, int yMax, boolean doUpdate) {
+            this.yMin = yMin;
+            this.yMax = yMax;
+            this.doUpdate = doUpdate;
+        }
+
+        @Override
+        public void run() {
+            synchronized (lock) {
+                drawData.setYRange(yMin, yMax);
+            }
+
+            if (doUpdate) {
+                postInvalidateDelayed(0);
+                try {
+                    Thread.sleep(16);
+                } catch (InterruptedException e) {
+
+                }
+            }
+        }
     }
 
     public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
         drawData.calcYRangeAt(xLeftValue, xRightValue, drawData.getInvisibleLinesIndexes(), range);
     }
 
+    final @NotNull Set<Integer> newInvisibleLinesIndexes = new HashSet<>();
+
     public void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, boolean visible, @NotNull int[] range) {
-        final @NotNull Set<Integer> newInvisibleLinesIndexes = new HashSet<>(drawData.getInvisibleLinesIndexes());
+        newInvisibleLinesIndexes.clear();
+        newInvisibleLinesIndexes.addAll(drawData.getInvisibleLinesIndexes());
 
         ChartDrawData.updateLineVisibility(newInvisibleLinesIndexes, lineIndex, visible);
 
@@ -86,11 +130,12 @@ public abstract class AbsChartView extends View {
         calcYRangeAt(zoneLeftValue, zoneRightValue, yStopRange);
     }
 
+    private final @NotNull float[] xRange = new float[2];
+
     // при включении/выключении графика
     public void calcAnimationRanges(int lineIndex, boolean isChecked, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
         drawData.getYRange(yStartRange);
 
-        final @NotNull float[] xRange = new float[2];
         drawData.getXRange(xRange);
         calcYRangeAt(xRange[0], xRange[1], lineIndex, isChecked, yStopRange);
     }
@@ -113,7 +158,6 @@ public abstract class AbsChartView extends View {
         //
         final float[][] lines = drawData.getLinesLines();
 
-        final int[] xIndexRange = new int[2];
         drawData.getXRange(xIndexRange);
         final int pointsCount = (xIndexRange[1] - xIndexRange[0] + 1 - 1) * 4;
 
@@ -128,6 +172,44 @@ public abstract class AbsChartView extends View {
 //                throw new AssertionError();
 //            canvas.drawLines(lines[i], linesPaints[i]);
             canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
+        }
+    }
+
+    private final @NotNull int[] xIndexRange = new int[2];
+    private final @NotNull float[] a1 = new float[500 * 4];
+    private final @NotNull float[] a2 = new float[500 * 4];
+
+    protected void drawLines2(@NotNull Canvas canvas) {
+        final Matrix matrix = drawData.getMatrix();
+
+        drawData.getXRange(xIndexRange);
+        final int linePtsCount = xIndexRange[1] - xIndexRange[0] + 1;
+
+        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+
+        for (int j = 0; j < inputData.LinesValues.length; j++) {
+            // don't calc invisible lines
+            if (invisibleLinesIndexes.contains(j)) {
+                continue;
+            }
+
+            int k = 0;
+            a1[k] = inputData.XValues[xIndexRange[0]];
+            a1[k + 1] = inputData.LinesValues[j][xIndexRange[0]];
+            k += 2;
+            for (int i = xIndexRange[0] + 1; i < xIndexRange[1]; i++) {
+                a1[k] = inputData.XValues[i];
+                a1[k + 1] = inputData.LinesValues[j][i];
+                a1[k + 2] = a1[k];
+                a1[k + 3] = a1[k + 1];
+                k += 4;
+            }
+            a1[k] = inputData.XValues[xIndexRange[1]];
+            a1[k + 1] = inputData.LinesValues[j][xIndexRange[1]];
+
+            matrix.mapPoints(a2, 0, a1, 0, (linePtsCount - 1) << 1);
+
+            canvas.drawLines(a2, 0, (linePtsCount - 1) << 2,  linesPaints[j]);
         }
     }
 }

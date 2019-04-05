@@ -1,5 +1,7 @@
 package com.github.alunegov.tchart;
 
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.Path;
 import android.graphics.RectF;
 
@@ -7,6 +9,7 @@ import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import simplify.Simplify;
 
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
@@ -40,6 +43,9 @@ public class ChartDrawData {
     // Метки для оцифровки осей
     private List<AxisMark> xAxisMarks, yAxisMarks;
 
+    private final @NotNull Matrix matrix = new Matrix();
+    private float[] pts;
+
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
 
@@ -57,6 +63,8 @@ public class ChartDrawData {
                 throw new AssertionError();
             linesLines[i] = new float[(inputData.XValues.length - 1) * 4];
         }
+
+        pts = new float[(inputData.XValues.length - 1) * 4];
     }
 
     public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextConv) {
@@ -211,8 +219,9 @@ public class ChartDrawData {
         return yAxisMarks;
     }
 
+    private final @NotNull int[] yRange = new int[2];
+
     private void updateYRange() {
-        final @NotNull int[] yRange = new int[2];
         calcYRangeAt(xLeftIndex, xRightIndex, invisibleLinesIndexes, yRange);
 
         yMin = yRange[0];
@@ -224,6 +233,9 @@ public class ChartDrawData {
         scaleY = area.height() / (float) Math.abs(yMax - yMin);
     }
 
+    boolean b1 = false;
+    boolean b2 = false;
+
     private void updateLinesAndAxis() {
         if (!areaSet) {
             return;
@@ -232,7 +244,24 @@ public class ChartDrawData {
             return;
         }
 
-        //
+        updateIsAllLinesInvisible();
+
+        updateMatrix();
+
+        //if (!b1) {
+            //b1 = true;
+
+            updateLines();
+        //}
+
+        if (!b2) {
+            b2 = true;
+
+            updateAxisMarks();
+        }
+    }
+
+    private void updateIsAllLinesInvisible() {
         isAllLinesInvisible = true;
         for (int j = 0; j < inputData.LinesValues.length; j++) {
             if (!invisibleLinesIndexes.contains(j)) {
@@ -240,11 +269,17 @@ public class ChartDrawData {
                 break;
             }
         }
+    }
 
-        //
+    private void updateMatrix() {
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
         final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
 
+        matrix.setScale(scaleX, -scaleY);
+        matrix.postTranslate(xToPixelHelper, yToPixelHelper);
+    }
+
+    private void updateLines() {
 /*        //
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
@@ -270,7 +305,34 @@ public class ChartDrawData {
             }
         }*/
 
-        //
+/*        for (int j = 0; j < linesLines.length; j++) {
+            // don't calc invisible lines
+            if (invisibleLinesIndexes.contains(j)) {
+                continue;
+            }
+
+            final float[] lineLines = linesLines[j];
+
+            int k = 0;
+            lineLines[k] = xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX;
+            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY;
+            k += 2;
+            for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
+                lineLines[k] = xToPixelHelper + inputData.XValues[i] * scaleX;
+                lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][i] * scaleY;
+                lineLines[k + 2] = lineLines[k];
+                lineLines[k + 3] = lineLines[k + 1];
+                k += 4;
+            }
+            lineLines[k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
+            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
+
+//            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4))
+//                throw new AssertionError();
+        }*/
+
+        final int linePtsCount = xRightIndex - xLeftIndex + 1;
+
         for (int j = 0; j < linesLines.length; j++) {
             // don't calc invisible lines
             if (invisibleLinesIndexes.contains(j)) {
@@ -278,24 +340,28 @@ public class ChartDrawData {
             }
 
             int k = 0;
-            linesLines[j][k] = xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX;
-            linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY;
+            pts[k] = inputData.XValues[xLeftIndex];
+            pts[k + 1] = inputData.LinesValues[j][xLeftIndex];
             k += 2;
             for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
-                linesLines[j][k] = xToPixelHelper + inputData.XValues[i] * scaleX;
-                linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][i] * scaleY;
-                linesLines[j][k + 2] = linesLines[j][k];
-                linesLines[j][k + 3] = linesLines[j][k + 1];
+                pts[k] = inputData.XValues[i];
+                pts[k + 1] = inputData.LinesValues[j][i];
+                pts[k + 2] = pts[k];
+                pts[k + 3] = pts[k + 1];
                 k += 4;
             }
-            linesLines[j][k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
-            linesLines[j][k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
+            pts[k] = inputData.XValues[xRightIndex];
+            pts[k + 1] = inputData.LinesValues[j][xRightIndex];
 
-            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4))
-                throw new AssertionError();
+            matrix.mapPoints(linesLines[j], 0, pts, 0, (linePtsCount - 1) << 1);
         }
+    }
 
-        //
+    public Matrix getMatrix() {
+        return matrix;
+    }
+
+    private void updateAxisMarks() {
         if (getIsMarksUpdating()) {
             updateXAxisMarks();
             updateYAxisMarks();

@@ -37,6 +37,7 @@ public class ChartInputDataMapper {
 
             JSONArray jFirstLine = jColumns.getJSONArray(0);
             int firstLinePointsCount = jFirstLine.length() - 1;  // without line label
+            //firstLinePointsCount = 100;
 
             ChartInputData data = new ChartInputData(linesCount, firstLinePointsCount);
             int l = 0;
@@ -55,12 +56,12 @@ public class ChartInputDataMapper {
 
                     gotX = true;
 
-                    for (int k = 1; k < jLine.length(); k++) {
-                        data.XValues[k - 1] = jLine.getLong(k);
+                    for (int k = 0; k < firstLinePointsCount; k++) {
+                        data.XValues[k] = jLine.getLong(k + 1);
                     }
                 } else if (lineType.equals("line")) {
-                    for (int k = 1; k < jLine.length(); k++) {
-                        data.LinesValues[l][k - 1] = jLine.getInt(k);
+                    for (int k = 0; k < firstLinePointsCount; k++) {
+                        data.LinesValues[l][k] = jLine.getInt(k + 1);
                     }
                     data.LinesNames[l] = jNames.getString(lineId);
                     data.LinesColors[l] = colorParser.parseColor(jColors.getString(lineId));

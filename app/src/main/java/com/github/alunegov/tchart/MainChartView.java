@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.os.Handler;
 import android.support.v7.widget.ViewUtils;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -146,6 +147,7 @@ public class MainChartView extends AbsChartView {
         drawData.setXRange(xLeftValue, xRightValue, true);
 
         invalidate();
+        //postInvalidateDelayed(12);
     }
 
     public void setXYRange(float xLeftValue, float xRightValue, int yMin, int yMax) {
@@ -158,6 +160,7 @@ public class MainChartView extends AbsChartView {
         drawData.setYRange(yMin, yMax);
 
         invalidate();
+        //postInvalidateDelayed(12);
     }
 
     @Override
@@ -371,25 +374,27 @@ public class MainChartView extends AbsChartView {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (drawData == null) {
-            return;
-        }
+//        synchronized (lock) {
+            if (drawData == null) {
+                return;
+            }
 
-        drawXAxis(canvas);
+            drawXAxis(canvas);
 
-        // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
-        if (drawData.getIsAllLinesInvisible()) {
-            final float x = getWidth() / 2f - axisTextPaint.measureText(NO_DATA) / 2f;
-            final float y = graphAreaHeight / 2f;
+            // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
+            if (drawData.getIsAllLinesInvisible()) {
+                final float x = getWidth() / 2f - axisTextPaint.measureText(NO_DATA) / 2f;
+                final float y = graphAreaHeight / 2f;
 
-            canvas.drawText(NO_DATA, x, y, axisTextPaint);
+                canvas.drawText(NO_DATA, x, y, axisTextPaint);
 
-            return;
-        }
+                return;
+            }
 
-        drawYAxis(canvas);
-        drawLines(canvas);
-        drawCursor(canvas);
+            drawYAxis(canvas);
+            drawLines(canvas);
+            drawCursor(canvas);
+//        }
     }
 
     private void drawXAxis(@NotNull Canvas canvas) {

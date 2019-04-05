@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 public class PreviewChartView extends AbsChartView {
     private static final int FADED_COLOR = Color.parseColor("#C8F5F8F9");
 
-    private static final int FRAME_COLOR = Color.parseColor("#DBE7F0");
+    private static final int FRAME_COLOR = Color.parseColor("#C8DBE7F0");
 
     private static final float LINE_WIDTH_DP = 1.0f;
 
@@ -35,6 +36,8 @@ public class PreviewChartView extends AbsChartView {
     private boolean isMoving = false;
     private float zoneLeftValue, zoneRightValue;
     private RectF zoneLeftBorder, zoneRightBorder;
+    private Bitmap cachedLines;
+    private boolean useCachedLines = true;
 
     // настройки отрисовки скрывающего слоя для зон слева и справа от выбранного диапазона по X
     private Paint fadedPaint;
@@ -77,18 +80,59 @@ public class PreviewChartView extends AbsChartView {
         this.onChangeListener = onChangeListener;
     }
 
+    @Override
     public void setInputData(@NotNull ChartInputData inputData) {
         super.setInputData(inputData);
 
-        zoneLeftValue = inputData.XValues[inputData.XValues.length * 4 / 6];  // TODO: starting zoneLeft?
+        zoneLeftValue = inputData.XValues[0];//inputData.XValues[inputData.XValues.length * 4 / 6];  // TODO: starting zoneLeft?
         zoneRightValue = inputData.XValues[inputData.XValues.length - 1];
 
         updateZoneLeftBorder(false);
         updateZoneRightBorder(false);
 
+        updateCachedLines();
+        useCachedLines = true;
+
         // оповещение через onChangeListener. если нужно получить зону, то есть getZone
 
         //invalidate();
+    }
+
+    @Override
+    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
+        super.updateLineVisibility(lineIndex, visible, false);
+
+        if (doUpdate) {
+            updateCachedLines();
+            useCachedLines = true;
+
+            invalidate();
+        }
+    }
+
+    @Override
+    public void setYRange(int yMin, int yMax, boolean doUpdate) {
+        useCachedLines = false;
+        super.setYRange(yMin, yMax, doUpdate);
+    }
+
+    @Override
+    protected void drawLines(@NotNull Canvas canvas) {
+        if (useCachedLines) {
+            assert cachedLines != null;
+            canvas.drawBitmap(cachedLines, 0, 0, null);
+        } else {
+            super.drawLines(canvas);
+        }
+    }
+
+    @Override
+    protected void drawLines2(@NotNull Canvas canvas) {
+        if (cachedLines != null) {
+            canvas.drawBitmap(cachedLines, 0, 0, null);
+        } else {
+            super.drawLines2(canvas);
+        }
     }
 
     public void getZone(@NotNull float[] zone) {
@@ -98,16 +142,29 @@ public class PreviewChartView extends AbsChartView {
         zone[1] = zoneRightValue;
     }
 
+    public void useCachedLines() {
+        if (!useCachedLines) {
+            Log.d("PCV", "useCachedLines");
+            updateCachedLines();
+            useCachedLines = true;
+        }
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         if (drawData == null) {
             return;
         }
 
+        assert getWidth() == w;
+        assert getHeight() == h;
         drawData.setArea(new RectF(0, 0, w, h));
 
         updateZoneLeftBorder(true);
         updateZoneRightBorder(true);
+
+        updateCachedLines();
+        useCachedLines = true;
 
         //invalidate();
     }
@@ -170,6 +227,14 @@ public class PreviewChartView extends AbsChartView {
                                 getParent().requestDisallowInterceptTouchEvent(true);
                             }
                         }
+
+                        useCachedLines();
+
+                        break;
+                    }
+
+                    if (moveDelta == 0f) {
+                        moveStart = x;
                         break;
                     }
 
@@ -225,6 +290,8 @@ public class PreviewChartView extends AbsChartView {
 
                     invalidate();
 
+                    //Log.d("PCV", String.format("action = %d, moveMode = %s", event.getAction(), moveMode.toString()));
+
                     if (onChangeListener != null) {
                         onChangeListener.onZoneChanged(zoneLeftValue, zoneRightValue);
                     }
@@ -258,15 +325,33 @@ public class PreviewChartView extends AbsChartView {
         }
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        if (drawData == null) {
+    private void updateCachedLines() {
+        if (getWidth() == 0 || getHeight() == 0) {
+            cachedLines = null;
             return;
         }
 
-        drawFrame(canvas);
-        drawLines(canvas);
-        drawLinesFade(canvas);
+        cachedLines = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.RGB_565);
+
+        final Canvas canvas = new Canvas(cachedLines);
+
+        final int backColor = ChartUtils.getThemedColor(getContext(), R.attr.app_background_color, Color.WHITE);
+        canvas.drawColor(backColor);
+
+        super.drawLines(canvas);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+//        synchronized (lock) {
+            if (drawData == null) {
+                return;
+            }
+
+            drawLines(canvas);
+            drawLinesFade(canvas);
+            drawFrame(canvas);
+//        }
     }
 
     private void drawLinesFade(@NotNull Canvas canvas) {
@@ -282,13 +367,13 @@ public class PreviewChartView extends AbsChartView {
     private void drawFrame(@NotNull Canvas canvas) {
         final int h = getHeight();
 
-        // left, hor
+        // left, vert
         canvas.drawRect(zoneLeftBorder, framePaint);
-        // right, hor
+        // right, vert
         canvas.drawRect(zoneRightBorder, framePaint);
-        // top, vert
+        // top, hor
         canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, borderVerticalHeight, framePaint);
-        // bottom, vert
+        // bottom, hor
         canvas.drawRect(zoneLeftBorder.right, h - borderVerticalHeight, zoneRightBorder.left, h, framePaint);
     }
 

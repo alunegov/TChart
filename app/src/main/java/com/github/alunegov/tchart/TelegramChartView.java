@@ -5,15 +5,26 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Handler;
+import android.os.SystemClock;
+import android.os.Trace;
+import android.support.v4.view.animation.FastOutLinearInInterpolator;
+import android.support.v4.view.animation.FastOutSlowInInterpolator;
+import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.Choreographer;
 import android.view.LayoutInflater;
+import android.view.animation.BounceInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.jetbrains.annotations.NotNull;
+import simplify.Simplify;
 
 public class TelegramChartView extends LinearLayout {
     private static final int DEF_TEXT_SIZE_SP = 17;
@@ -32,6 +43,10 @@ public class TelegramChartView extends LinearLayout {
     private int lineVisibilityAnimation_lineIndex;
     private boolean lineVisibilityAnimation_isChecked;
     private boolean lineVisibilityAnimation_done = false;
+
+    private final Handler h = new Handler();
+
+    int ymin_main1, ymax_main1, ymin_main2, ymax_main2, ymin_main3, ymax_main3;
 
     public TelegramChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -55,11 +70,11 @@ public class TelegramChartView extends LinearLayout {
         previewChartView.setOnChangeListener(previewChartChangeListener);
         lineNamesView.setOnCheckedChangeListener(lineNamesCheckedChangeListener);
 
-        zoneChangeAnimator.setInterpolator(new LinearInterpolator());
-        zoneChangeAnimator.setDuration(100);
+        //zoneChangeAnimator.setInterpolator(new FastOutSlowInInterpolator());
+        zoneChangeAnimator.setDuration(200);
         zoneChangeAnimator.addUpdateListener(zoneChangeAnimatorUpdateListener);
 
-        lineVisibilityAnimator.setInterpolator(new LinearInterpolator());
+        //lineVisibilityAnimator.setInterpolator(new FastOutSlowInInterpolator());
         lineVisibilityAnimator.setDuration(200);
         lineVisibilityAnimator.addUpdateListener(lineVisibilityAnimatorUpdateListener);
 
@@ -102,18 +117,20 @@ public class TelegramChartView extends LinearLayout {
                 return;
             }
 
-            startZoneChangeAnimation(zoneLeftValue, zoneRightValue);
+            //mainChartView.setXRange(zoneLeftValue, zoneRightValue);
+            //invalidate();
+
+            startZoneChangeAnimation(zoneLeftValue, zoneRightValue, true);
 
             // AnimatorListener.onAnimationEnd not working right - sometimes it not fires.
             // https://stackoverflow.com/a/18683419/2968990
-            final Handler h = new Handler();
             h.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     //Log.v("TCV", String.format("run gotPending = %s", isPendingZoneChangeAnimation));
                     if (isPendingZoneChangeAnimation) {
                         isPendingZoneChangeAnimation = false;
-                        startZoneChangeAnimation(zoneLeftValuePending, zoneRightValuePending);
+                        startZoneChangeAnimation(zoneLeftValuePending, zoneRightValuePending, true);
 
                         h.postDelayed(this, zoneChangeAnimator.getDuration());
                     }
@@ -122,11 +139,17 @@ public class TelegramChartView extends LinearLayout {
         }
     };
 
-    private void startZoneChangeAnimation(float zoneLeftValue, float zoneRightValue) {
-        final float[] startXRange = new float[2];
-        mainChartView.getXRange(startXRange);
-        final PropertyValuesHolder xl = PropertyValuesHolder.ofFloat("xl", startXRange[0], zoneLeftValue);
-        final PropertyValuesHolder xr = PropertyValuesHolder.ofFloat("xr", startXRange[1], zoneRightValue);
+    private void startZoneChangeAnimation(float zoneLeftValue, float zoneRightValue, boolean b) {
+        final PropertyValuesHolder xl, xr;
+        if (b) {
+            final float[] startXRange = new float[2];
+            mainChartView.getXRange(startXRange);
+            xl = PropertyValuesHolder.ofFloat("xl", startXRange[0], zoneLeftValue);
+            xr = PropertyValuesHolder.ofFloat("xr", startXRange[1], zoneRightValue);
+        } else {
+            xl = PropertyValuesHolder.ofFloat("xl", zoneLeftValue, zoneLeftValue);
+            xr = PropertyValuesHolder.ofFloat("xr", zoneRightValue, zoneRightValue);
+        }
         //Log.v("TCV", String.format("left = %f, right = %f, swing = %f startZoneChangeAnimation", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
 
         final int[] startYRange = new int[2];
@@ -146,7 +169,7 @@ public class TelegramChartView extends LinearLayout {
             final float xr = (float) animation.getAnimatedValue("xr");
             final int ymin = (int) animation.getAnimatedValue("ymin");
             final int ymax = (int) animation.getAnimatedValue("ymax");
-            //Log.v("TCV", String.format("left = %f, right = %f, swing = %f setXYRange", xl, xr, xr - xl));
+            //Log.v("TCV", String.format("left = %f, right = %f, swing = %f setXYRange at %d", xl, xr, xr - xl, animation.getCurrentPlayTime()));
 
             mainChartView.setXYRange(xl, xr, ymin, ymax);
         }
@@ -158,8 +181,8 @@ public class TelegramChartView extends LinearLayout {
     private final LineNameListView.OnCheckedChangeListener lineNamesCheckedChangeListener = new LineNameListView.OnCheckedChangeListener() {
         @Override
         public void onCheckedChange(int lineIndex, boolean isChecked) {
-//            mainChartView.updateLineVisibility(lineIndex, isChecked, true);
-//            previewChartView.updateLineVisibility(lineIndex, isChecked, true);
+            //mainChartView.updateLineVisibility(lineIndex, isChecked, true);
+            //previewChartView.updateLineVisibility(lineIndex, isChecked, true);
 
             lineVisibilityAnimator.cancel();
 
@@ -187,15 +210,112 @@ public class TelegramChartView extends LinearLayout {
                 lineVisibilityAnimation_isChecked = isChecked;
                 lineVisibilityAnimation_done = false;
 
+//                t = SystemClock.elapsedRealtime();
+
                 lineVisibilityAnimator.setValues(ymin_main, ymax_main, ymin_preview, ymax_preview);
                 lineVisibilityAnimator.start();
+
+/*                ymin_main1 = startYRange[0];
+                ymax_main1 = startYRange[1];
+                ymin_main2 = stopYRange[0];
+                ymax_main2 = stopYRange[1];
+                ymin_main3 = (stopYRange[0] - startYRange[0]) / 10;
+                ymax_main3 = (stopYRange[1] - startYRange[1]) / 10;
+
+                prevFrameTimeNanos = 0;
+                bb = 0;
+
+                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);*/
+
+/*                postOnAnimationDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        boolean cond;
+                        if (ymax_main3 > 0) {
+                            cond = ymin_main1 < ymin_main2 || ymax_main1 < ymax_main2;
+                        } else {
+                            cond = ymin_main1 > ymin_main2 || ymax_main1 > ymax_main2;
+                        }
+                        if (cond) {
+                            ymin_main1 += ymin_main3;
+                            ymax_main1 += ymax_main3;
+
+                            mainChartView.setYRange(ymin_main1, ymax_main1, true);
+                            previewChartView.setYRange(ymin_main1, ymax_main1, true);
+
+                            removeCallbacks(this);
+                            postOnAnimationDelayed(this, 16);
+                        } else {
+                            previewChartView.useCachedLines();
+                        }
+                    }
+                }, 16);*/
             }
+        }
+    };
+
+    private static final long NanoSecPerMSec = 1000000L;
+    private long prevFrameTimeNanos;
+    private int bb = 0;
+
+    private final Choreographer.FrameCallback frameCallback = new Choreographer.FrameCallback() {
+        @Override
+        public void doFrame(long frameTimeNanos) {
+            //Trace.beginSection("Choreographer.doFrame");
+            //Log.d("TCV", String.format("Choreographer.doFrame at %d", frameTimeNanos));
+            if (bb++ < 1) {
+                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
+                return;
+            } else {
+                bb = 0;
+            }
+
+            if (prevFrameTimeNanos != 0) {
+                long elapsed = (frameTimeNanos - prevFrameTimeNanos) / NanoSecPerMSec;
+                if (elapsed > 17) {
+                    Log.d("TCV", String.format("elapsed ms %d", elapsed));
+                }
+                if (elapsed < 16) {
+                    //Log.d("TCV", "Choreographer.doFrame in 16 ms");
+                    Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
+                    return;
+                }
+            }
+            prevFrameTimeNanos = frameTimeNanos;
+
+            boolean cond;
+            if (ymax_main3 > 0) {
+                cond = ymin_main1 < ymin_main2 || ymax_main1 < ymax_main2;
+            } else {
+                cond = ymin_main1 > ymin_main2 || ymax_main1 > ymax_main2;
+            }
+            if (cond) {
+                ymin_main1 += ymin_main3;
+                ymax_main1 += ymax_main3;
+
+                mainChartView.setYRange(ymin_main1, ymax_main1, true);
+                previewChartView.setYRange(ymin_main1, ymax_main1, true);
+
+                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
+            } else {
+                previewChartView.useCachedLines();
+            }
+
+            //Trace.endSection();
         }
     };
 
     private final @NotNull ValueAnimator.AnimatorUpdateListener lineVisibilityAnimatorUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
+            //Trace.beginSection("lineVisibility onAnimationUpdate");
+
+/*            if ((t + 15) > SystemClock.elapsedRealtime()) {
+                Log.d("TCV", String.format("skipped at %d < %d", SystemClock.elapsedRealtime(), t + 15));
+                return;
+            }
+            t = SystemClock.elapsedRealtime();*/
+
             final int ymin_main = (int) animation.getAnimatedValue("ymin_main");
             final int ymax_main = (int) animation.getAnimatedValue("ymax_main");
             final int ymin_preview = (int) animation.getAnimatedValue("ymin_preview");
@@ -207,8 +327,10 @@ public class TelegramChartView extends LinearLayout {
                 lineVisibilityAnimation_done = true;
             }
 
-            mainChartView.setYRange(ymin_main, ymax_main);
-            previewChartView.setYRange(ymin_preview, ymax_preview);
+            mainChartView.setYRange(ymin_main, ymax_main, true);
+            previewChartView.setYRange(ymin_preview, ymax_preview, true);
+
+            //Trace.endSection();
         }
     };
 
@@ -234,6 +356,8 @@ public class TelegramChartView extends LinearLayout {
             linesNames[i] = new LineName(inputData.LinesNames[i], inputData.LinesColors[i]);
         }
 
+//        optInputData(inputData);
+
         mainChartView.setInputData(inputData);
         previewChartView.setInputData(inputData);
         lineNamesView.setLineNames(linesNames);
@@ -241,5 +365,39 @@ public class TelegramChartView extends LinearLayout {
         final float[] zone = new float[2];
         previewChartView.getZone(zone);
         mainChartView.setXRange(zone[0], zone[1]);
+    }
+
+    private void optInputData(@NotNull ChartInputData inputData) {
+        final long[] originalXValues = new long[inputData.XValues.length];
+        for (int i = 0; i < inputData.XValues.length; i++) {
+            originalXValues[i] = inputData.XValues[i];
+        }
+
+        float tol;
+        //tol = (inputData.XValues[inputData.XValues.length - 1] - inputData.XValues[0]) / 10f;
+        tol = 20f;
+
+        for (int j = 0; j < inputData.LinesValues.length; j++) {
+            final float[][] f = new float[inputData.LinesValues[j].length][3];
+            int l = 0;
+            for (int i = 0; i < inputData.LinesValues[j].length; i++) {
+                f[l][0] = (float) originalXValues[i];
+                f[l][1] = inputData.LinesValues[j][i];
+                f[l][2] = 0;
+                l++;
+            }
+
+            final float[][] res = Simplify.simplify(f, tol, true);
+
+            Log.d("TCV", String.format("points %d -> %d", inputData.LinesValues[j].length, res.length));
+
+            inputData.XValues = new long[res.length];
+            inputData.LinesValues[j] = new int[res.length];
+
+            for (int i = 0; i < res.length; i++) {
+                inputData.XValues[i] = (long) (res[i][0]);
+                inputData.LinesValues[j][i] = (int) res[i][1];
+            }
+        }
     }
 }
