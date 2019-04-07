@@ -88,6 +88,7 @@ public class ChartDrawData {
         updateLinesAndAxis();
     }
 
+    // отображаемый диапазон по X, фактические значения. М.б. не из XValues
     public void getXRange(@NotNull float[] range) {
         assert (range != null) && (range.length == 2);
 
@@ -95,11 +96,21 @@ public class ChartDrawData {
         range[1] = xRightValue;
     }
 
+    // отображаемый диапазон по Х, индексы в XValues. М.б. -1/+1, чтобы "охватить" фактические значения
+    // (см. findXLeftIndex и findXRightIndex)
     public void getXRange(@NotNull int[] range) {
         assert (range != null) && (range.length == 2);
 
         range[0] = xLeftIndex;
         range[1] = xRightIndex;
+    }
+
+    // отображаемый диапазон по Х, значения в XValues
+    public void getXRange(@NotNull long[] range) {
+        assert (range != null) && (range.length == 2);
+
+        range[0] = inputData.XValues[xLeftIndex] < xLeftValue ? inputData.XValues[xLeftIndex + 1] : inputData.XValues[xLeftIndex];
+        range[1] = inputData.XValues[xRightIndex] > xRightValue ? inputData.XValues[xRightIndex - 1] : inputData.XValues[xRightIndex];
     }
 
     public void setXRange(float xLeftValue, float xRightValue, boolean doUpdate) {
@@ -254,11 +265,11 @@ public class ChartDrawData {
             updateLines();
         //}
 
-        if (!b2) {
-            b2 = true;
+        //if (!b2) {
+            //b2 = true;
 
             updateAxisMarks();
-        }
+        //}
     }
 
     private void updateIsAllLinesInvisible() {

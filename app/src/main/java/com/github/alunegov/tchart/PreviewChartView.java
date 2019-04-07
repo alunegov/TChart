@@ -12,20 +12,17 @@ import android.view.ViewConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public class PreviewChartView extends AbsChartView {
-    private static final int FADED_COLOR = Color.parseColor("#C8F5F8F9");
+    private static final int FADED_COLOR = Color.parseColor("#C8EDF5FB");
 
     private static final int FRAME_COLOR = Color.parseColor("#C8DBE7F0");
 
     private static final float LINE_WIDTH_DP = 1.0f;
 
-    private static final float BORDER_HORIZONTAL_WIDTH_DP = 4f;
+    private static final float BORDER_HORIZONTAL_WIDTH_DP = 10f;
     private static final float BORDER_VERTICAL_HEIGHT_DP = 1.5f;
 
     private static final int TOUCH_SLOP1_DP = 40;
     private static final float TOUCH_SLOP2_PERCENT = 0.1f;
-
-    // Cache the touch slop from the context that created the view.
-    private int mTouchSlop;
 
     private float borderHorizontalWidth, borderVerticalHeight;
     private float touchSlop1;
@@ -33,7 +30,6 @@ public class PreviewChartView extends AbsChartView {
     private OnChangeListener onChangeListener;
     private MoveMode moveMode = MoveMode.NOP;
     private float moveStart;
-    private boolean isMoving = false;
     private float zoneLeftValue, zoneRightValue;
     private RectF zoneLeftBorder, zoneRightBorder;
     private Bitmap cachedLines;
@@ -51,8 +47,6 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private void init(Context context) {
-        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-
         final DisplayMetrics dm = context.getResources().getDisplayMetrics();
 
         lineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, LINE_WIDTH_DP, dm);
@@ -128,7 +122,8 @@ public class PreviewChartView extends AbsChartView {
 
     @Override
     protected void drawLines2(@NotNull Canvas canvas) {
-        if (cachedLines != null) {
+        if (useCachedLines) {
+            assert cachedLines != null;
             canvas.drawBitmap(cachedLines, 0, 0, null);
         } else {
             super.drawLines2(canvas);
@@ -203,7 +198,7 @@ public class PreviewChartView extends AbsChartView {
             case MotionEvent.ACTION_UP:
                 if (moveMode != MoveMode.NOP) {
                     moveMode = MoveMode.NOP;
-                    isMoving = false;
+                    horizontalMovement = false;
 
                     // allow parent to intercept touch events
                     if (getParent() != null) {
@@ -217,10 +212,10 @@ public class PreviewChartView extends AbsChartView {
                 if (moveMode != MoveMode.NOP) {
                     moveDelta = x - moveStart;
 
-                    if (!isMoving) {
+                    if (!horizontalMovement) {
                         if (Math.abs(moveDelta) > mTouchSlop) {
                             moveStart = x;
-                            isMoving = true;
+                            horizontalMovement = true;
 
                             // disallow parent (ScrollView) to intercept touch events while we're moving selection zone
                             if (getParent() != null) {

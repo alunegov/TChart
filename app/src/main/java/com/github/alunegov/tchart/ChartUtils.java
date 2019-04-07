@@ -58,7 +58,23 @@ public class ChartUtils {
 
     private static final String DEF_AXIS_DATE_FORMAT_TEMPLATE = "MMM dd";
 
+    // формат преобразования дат на отметках оси Х
     public static @NotNull String getAxisDateFormatTemplate(@NotNull Context context) {
+        return getDateFormatTemplate(context, false, false);
+    }
+
+    // формат преобразования дат на плашке
+    public static @NotNull String getMarkerDateFormatTemplate(@NotNull Context context) {
+        final String res = getDateFormatTemplate(context, true, false);
+        return "EEE, " + res;
+    }
+
+    // формат преобразования дат в заголовке графика
+    public static @NotNull String getXRangeDateFormatTemplate(@NotNull Context context) {
+        return getDateFormatTemplate(context, true, true);
+    }
+
+    private static @NotNull String getDateFormatTemplate(@NotNull Context context, boolean includeYear, boolean longMonth) {
         String res;
 
         try {
@@ -72,14 +88,19 @@ public class ChartUtils {
                 for (int i = 0; i < dfo.length; i++) {
                     switch (dfo[i]) {
                         case 'y':
-                            // skip
+                            if (includeYear) {
+                                if (sb.length() > 0) {
+                                    sb.append(" ");
+                                }
+                                sb.append("yyyy");
+                            }
                             break;
 
                         case 'M':
                             if (sb.length() > 0) {
                                 sb.append(" ");
                             }
-                            sb.append("MMM");
+                            sb.append(longMonth ? "MMMM" : "MMM");
                             break;
 
                         case 'd':
@@ -98,11 +119,6 @@ public class ChartUtils {
         }
 
         return res;
-    }
-
-    public static @NotNull String getMarkerDateFormatTemplate(@NotNull Context context) {
-        final String res = getAxisDateFormatTemplate(context);
-        return "EEE, " + res;
     }
 
     public static int getThemedColor(@NotNull Context context, int resId, int defColor) {

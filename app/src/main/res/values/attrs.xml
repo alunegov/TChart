@@ -11,6 +11,7 @@
     <attr name="tchart_axis_text_color" format="reference|color" />
     <attr name="tchart_axis_line_color" format="reference|color" />
     <attr name="tchart_cursor_line_color" format="reference|color" />
+    <attr name="tchart_cursor_line_name_text_color" format="reference|color" />
     <attr name="tchart_preview_faded_color" format="reference|color" />
     <attr name="tchart_preview_frame_color" format="reference|color" />
     <attr name="tchart_line_name_text_color" format="reference|color" />

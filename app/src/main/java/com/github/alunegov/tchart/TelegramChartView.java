@@ -16,6 +16,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Choreographer;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
@@ -24,6 +25,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Text;
 import simplify.Simplify;
 
 public class TelegramChartView extends LinearLayout {
@@ -31,9 +33,13 @@ public class TelegramChartView extends LinearLayout {
     private static final int DEF_AXIS_TEXT_SIZE_SP = 12;
 
     private TextView titleView;
+    private TextView xRangeView;
     private MainChartView mainChartView;
     private PreviewChartView previewChartView;
     private LineNameListView lineNamesView;
+
+    private MainChartView.XAxisConverter xRangeTextConverter;
+    private final @NotNull long[] xRange = new long[2];
 
     private final @NotNull ValueAnimator zoneChangeAnimator = new ValueAnimator();
     private boolean isPendingZoneChangeAnimation = false;
@@ -46,7 +52,7 @@ public class TelegramChartView extends LinearLayout {
 
     private final Handler h = new Handler();
 
-    int ymin_main1, ymax_main1, ymin_main2, ymax_main2, ymin_main3, ymax_main3;
+    private int ymin_main1, ymax_main1, ymin_main2, ymax_main2, ymin_main3, ymax_main3;
 
     public TelegramChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -63,10 +69,16 @@ public class TelegramChartView extends LinearLayout {
         inflater.inflate(R.layout.view_telegram_chart, this, true);
 
         titleView = (TextView) findViewById(R.id.title);
+        xRangeView = (TextView) findViewById(R.id.x_range);
         mainChartView = (MainChartView) findViewById(R.id.main_chart);
+        final View cursorPopupView = findViewById(R.id.cursor_popup);
         previewChartView = (PreviewChartView) findViewById(R.id.preview_chart);
         lineNamesView = (LineNameListView) findViewById(R.id.line_names);
 
+        final String xRangeDateFormatTemplate = ChartUtils.getXRangeDateFormatTemplate(context);
+        xRangeTextConverter = new MainChartView.XAxisConverter(xRangeDateFormatTemplate);
+
+        mainChartView.setCursorPopupView(cursorPopupView);
         previewChartView.setOnChangeListener(previewChartChangeListener);
         lineNamesView.setOnCheckedChangeListener(lineNamesCheckedChangeListener);
 
@@ -172,6 +184,9 @@ public class TelegramChartView extends LinearLayout {
             //Log.v("TCV", String.format("left = %f, right = %f, swing = %f setXYRange at %d", xl, xr, xr - xl, animation.getCurrentPlayTime()));
 
             mainChartView.setXYRange(xl, xr, ymin, ymax);
+
+            mainChartView.getXRange(xRange);
+            updateXRangeText(xRange[0], xRange[1]);
         }
     };
 
@@ -364,7 +379,11 @@ public class TelegramChartView extends LinearLayout {
 
         final float[] zone = new float[2];
         previewChartView.getZone(zone);
+
         mainChartView.setXRange(zone[0], zone[1]);
+
+        mainChartView.getXRange(xRange);
+        updateXRangeText(xRange[0], xRange[1]);
     }
 
     private void optInputData(@NotNull ChartInputData inputData) {
@@ -399,5 +418,10 @@ public class TelegramChartView extends LinearLayout {
                 inputData.LinesValues[j][i] = (int) res[i][1];
             }
         }
+    }
+
+    private void updateXRangeText(long xLeft, long xRight) {
+        final String text = String.format("%s - %s", xRangeTextConverter.toText(xLeft), xRangeTextConverter.toText(xRight));
+        xRangeView.setText(text);
     }
 }

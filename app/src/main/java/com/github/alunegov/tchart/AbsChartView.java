@@ -14,9 +14,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.view.ViewConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class AbsChartView extends View {
+    // Cache the touch slop from the context that created the view.
+    protected int mTouchSlop;
+
     protected ChartInputData inputData;
 
     protected ChartDrawData drawData;
@@ -26,8 +30,12 @@ public abstract class AbsChartView extends View {
     // настройки отрисовки линий
     protected Paint[] linesPaints;
 
+    protected boolean horizontalMovement = false;
+
     public AbsChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
@@ -43,13 +51,17 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(range);
     }
 
+    public void getXRange(@NotNull long[] range) {
+        drawData.getXRange(range);
+    }
+
     public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
 //        synchronized (lock) {
             if (drawData == null) {
                 return;
             }
 
-            drawData.updateLineVisibility(lineIndex, visible, doUpdate);
+            drawData.updateLineVisibility(lineIndex, visible, true);
 
             if (doUpdate) {
                 invalidate();
