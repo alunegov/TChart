@@ -31,9 +31,9 @@ public class ChartInputDataMapper {
         int parseColor(String color);
     }
 
-    public static @Nullable ChartInputData find(String s) {
+    /*public static @Nullable ChartInputData find(String s) {
         return null;
-    }
+    }*/
 
     public static @NotNull List<ChartInputData> load(@NotNull ResourceLoader resourceLoader, @NotNull ColorParser colorParser) throws IOException, JSONException {
         final List<ChartInputData> res = new ArrayList<>();

@@ -294,6 +294,11 @@ public class MainChartView extends AbsChartView {
 
                 inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
             }
+
+            // для суммы всех значений
+            if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+                inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
+            }
         }
 
         // дата
@@ -308,14 +313,36 @@ public class MainChartView extends AbsChartView {
 
             final View view = cursorValuesLayout.getChildAt(k++);
 
-            final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
-            lineNameTextBox.setText(inputData.LinesNames[i]);
-            //lineNameTextBox.setTextColor(inputData.LinesColors[i]);
-
-            final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
-            valueTextBox.setText(String.valueOf(inputData.LinesValues[i][cursorIndex]));
-            valueTextBox.setTextColor(inputData.LinesColors[i]);
+            updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]), inputData.LinesColors[i]);
         }
+        // сумма всех значений
+        if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+            if (BuildConfig.DEBUG && (k != (cursorValuesLayout.getChildCount() - 1))) throw new AssertionError();
+
+            int sum = 0;
+            for (int i = 0; i < inputData.LinesValues.length; i++) {
+                if (invisibleLinesIndexes.contains(i)) {
+                    continue;
+                }
+
+                sum += inputData.LinesValues[i][cursorIndex];
+            }
+
+            final View view = cursorValuesLayout.getChildAt(k);
+
+            // TODO: theme color
+            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK);
+        }
+    }
+
+    private void updateCursorPopupValueText(@NotNull View view, @NotNull String lineName, @NotNull String value, int lineColor) {
+        final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
+        lineNameTextBox.setText(lineName);
+        //lineNameTextBox.setTextColor(lineColor);
+
+        final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
+        valueTextBox.setText(value);
+        valueTextBox.setTextColor(lineColor);
     }
 
     private void updateCursorPopupPosition() {

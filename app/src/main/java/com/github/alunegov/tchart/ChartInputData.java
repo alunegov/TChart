@@ -24,6 +24,8 @@ public class ChartInputData {
     //
     public BitSet flags;
 
+    public int[] stackedSum;
+
     public ChartInputData(int linesCount, int pointsCount, LineType linesType) {
         this(linesCount, pointsCount, linesType, new BitSet());
     }
@@ -38,6 +40,8 @@ public class ChartInputData {
         LinesColors = new int[linesCount];
         this.linesType = linesType;
         this.flags = flags;
+
+
     }
 
     // Определение минимума и максимума по Y в указанном диапазоне X по всем сигналам
