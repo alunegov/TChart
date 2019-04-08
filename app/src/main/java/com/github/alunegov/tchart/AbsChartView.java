@@ -2,19 +2,13 @@ package com.github.alunegov.tchart;
 
 import android.content.Context;
 import android.graphics.*;
-import android.os.Build;
-import android.os.Handler;
-import android.support.annotation.UiThread;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewConfiguration;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import android.view.ViewConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class AbsChartView extends View {
@@ -32,6 +26,8 @@ public abstract class AbsChartView extends View {
 
     protected boolean horizontalMovement = false;
 
+    private int[] newLinesVisibilityState;
+
     public AbsChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -45,6 +41,8 @@ public abstract class AbsChartView extends View {
         drawData.setXRange(inputData.XValues[0], inputData.XValues[inputData.XValues.length - 1], true);
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
+
+        newLinesVisibilityState = new int[inputData.LinesValues.length];
     }
 
     public void getXRange(@NotNull float[] range) {
@@ -55,13 +53,15 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(range);
     }
 
-    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
+    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
 //        synchronized (lock) {
             if (drawData == null) {
                 return;
             }
 
-            drawData.updateLineVisibility(lineIndex, visible, true);
+            drawData.updateLineVisibility(lineIndex, state, true);
+
+            linesPaints[lineIndex].setAlpha(state);
 
             if (doUpdate) {
                 invalidate();
@@ -87,8 +87,8 @@ public abstract class AbsChartView extends View {
         drawData.setYRange(yMin, yMax);
 
         if (doUpdate) {
-            //invalidate();
-            postInvalidateDelayed(16);
+            invalidate();
+            //postInvalidateDelayed(16);
         }
     }
 
@@ -120,19 +120,17 @@ public abstract class AbsChartView extends View {
         }
     }
 
-    public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
-        drawData.calcYRangeAt(xLeftValue, xRightValue, drawData.getInvisibleLinesIndexes(), range);
+    private void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
+        drawData.calcYRangeAt(xLeftValue, xRightValue, drawData.getLinesVisibilityState(), range);
     }
 
-    final @NotNull Set<Integer> newInvisibleLinesIndexes = new HashSet<>();
+    private void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, int state, @NotNull int[] range) {
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+        System.arraycopy(linesVisibilityState, 0, newLinesVisibilityState, 0, linesVisibilityState.length);
 
-    public void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, boolean visible, @NotNull int[] range) {
-        newInvisibleLinesIndexes.clear();
-        newInvisibleLinesIndexes.addAll(drawData.getInvisibleLinesIndexes());
+        newLinesVisibilityState[lineIndex] = state;
 
-        ChartDrawData.updateLineVisibility(newInvisibleLinesIndexes, lineIndex, visible);
-
-        drawData.calcYRangeAt(xLeftValue, xRightValue, newInvisibleLinesIndexes, range);
+        drawData.calcYRangeAt(xLeftValue, xRightValue, newLinesVisibilityState, range);
     }
 
     // при изменении отображаемой зоны на графике
@@ -145,26 +143,28 @@ public abstract class AbsChartView extends View {
     private final @NotNull float[] xRange = new float[2];
 
     // при включении/выключении графика
-    public void calcAnimationRanges(int lineIndex, boolean isChecked, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
+    public void calcAnimationRanges(int lineIndex, int state, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
         drawData.getYRange(yStartRange);
 
         drawData.getXRange(xRange);
-        calcYRangeAt(xRange[0], xRange[1], lineIndex, isChecked, yStopRange);
+        calcYRangeAt(xRange[0], xRange[1], lineIndex, state, yStopRange);
     }
 
     protected void drawLines(@NotNull Canvas canvas) {
         assert drawData != null;
         assert linesPaints != null;
 
-        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
 /*        //
         final Path[] paths = drawData.getLinesPaths();
         assert paths.length == linesPaints.length;
         for (int i = 0; i < paths.length; i++) {
-            if (!invisibleLinesIndexes.contains(i)) {
-                canvas.drawPath(paths[i], linesPaints[i]);
+            if (linesVisibilityState[i] == 0) {
+                continue;
             }
+
+            canvas.drawPath(paths[i], linesPaints[i]);
         }*/
 
         //
@@ -176,13 +176,14 @@ public abstract class AbsChartView extends View {
         if (BuildConfig.DEBUG && (lines.length != linesPaints.length))
             throw new AssertionError();
         for (int i = 0; i < lines.length; i++) {
-            if (invisibleLinesIndexes.contains(i)) {
+            if (linesVisibilityState[i] == 0) {
                 continue;
             }
 
 //            if (BuildConfig.DEBUG && (lines[i].length != pointsCount))
 //                throw new AssertionError();
 //            canvas.drawLines(lines[i], linesPaints[i]);
+
             canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
         }
     }
@@ -197,11 +198,10 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(xIndexRange);
         final int linePtsCount = xIndexRange[1] - xIndexRange[0] + 1;
 
-        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
         for (int j = 0; j < inputData.LinesValues.length; j++) {
-            // don't calc invisible lines
-            if (invisibleLinesIndexes.contains(j)) {
+            if (linesVisibilityState[j] == 0) {
                 continue;
             }
 

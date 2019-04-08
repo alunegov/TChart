@@ -2,17 +2,12 @@ package com.github.alunegov.tchart;
 
 import android.content.Context;
 import android.graphics.*;
-import android.graphics.drawable.ColorDrawable;
-import android.os.Build;
-import android.os.Handler;
 import android.support.v7.widget.ViewUtils;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.*;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
@@ -152,7 +147,7 @@ public class MainChartView extends AbsChartView {
             public void onClick(View v) {
                 cursorIndex = NO_CURSOR;
 
-                updateCursorPopup(false);
+                updateCursorPopup();
 
                 invalidate();
             }
@@ -187,10 +182,10 @@ public class MainChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, visible, doUpdate);
+    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
+        super.updateLineVisibility(lineIndex, state, doUpdate);
 
-        updateCursorPopup(true);
+        updateCursorPopup();
     }
 
     @Override
@@ -244,7 +239,7 @@ public class MainChartView extends AbsChartView {
         } else {
             cursorIndex = newCursorIndex;
         }
-        updateCursorPopup(false);
+        updateCursorPopup();
 
         invalidate();
     }
@@ -261,7 +256,7 @@ public class MainChartView extends AbsChartView {
         }
     }
 
-    private void updateCursorPopup(boolean recreate) {
+    private void updateCursorPopup() {
         assert cursorPopupView != null;
 
         if (cursorIndex == NO_CURSOR) {
@@ -269,26 +264,34 @@ public class MainChartView extends AbsChartView {
             return;
         }
 
-        updateCursorPopupValues(recreate);
+        updateCursorPopupValues();
         updateCursorPopupPosition();
     }
 
     // создание списка видов в cursorPopupWindow со значениями курсора на видимых сигналах
-    private void updateCursorPopupValues(boolean recreate) {
+    private void updateCursorPopupValues() {
         assert cursorPopupView != null;
         if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
-        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
-        final int visibleLinesCount = inputData.LinesValues.length - invisibleLinesIndexes.size();
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
-        if (recreate || (visibleLinesCount != cursorValuesLayout.getChildCount())) {
+        int visibleLinesCount = drawData.getVisibleLinesCount();
+        // с учётом суммы всех значений
+        if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+            visibleLinesCount++;
+        }
+        final boolean recreate = visibleLinesCount != cursorValuesLayout.getChildCount();
+
+        if (recreate) {
+            //Log.d("MCV", "cursorValues recreated");
+
             final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             assert inflater != null;
 
             cursorValuesLayout.removeAllViews();
 
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (invisibleLinesIndexes.contains(i)) {
+                if (linesVisibilityState[i] == 0) {
                     continue;
                 }
 
@@ -307,13 +310,14 @@ public class MainChartView extends AbsChartView {
         // значения линий
         int k = 0;
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (invisibleLinesIndexes.contains(i)) {
+            if (linesVisibilityState[i] == 0) {
                 continue;
             }
 
             final View view = cursorValuesLayout.getChildAt(k++);
 
-            updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]), inputData.LinesColors[i]);
+            updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]),
+                    inputData.LinesColors[i], linesVisibilityState[i], recreate);
         }
         // сумма всех значений
         if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
@@ -321,7 +325,7 @@ public class MainChartView extends AbsChartView {
 
             int sum = 0;
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (invisibleLinesIndexes.contains(i)) {
+                if (linesVisibilityState[i] == 0) {
                     continue;
                 }
 
@@ -331,18 +335,26 @@ public class MainChartView extends AbsChartView {
             final View view = cursorValuesLayout.getChildAt(k);
 
             // TODO: theme color
-            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK);
+            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK, ChartDrawData.VISIBILITY_STATE_ON, recreate);
         }
     }
 
-    private void updateCursorPopupValueText(@NotNull View view, @NotNull String lineName, @NotNull String value, int lineColor) {
+    private void updateCursorPopupValueText(@NotNull View view, @NotNull String name, @NotNull String value, int color,
+                                            int state, boolean refill) {
         final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
-        lineNameTextBox.setText(lineName);
-        //lineNameTextBox.setTextColor(lineColor);
+        lineNameTextBox.setScaleY(state / 255f);
+        if (refill) {
+            lineNameTextBox.setText(name);
+            //lineNameTextBox.setTextColor(lineColor);
+        }
 
         final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
         valueTextBox.setText(value);
-        valueTextBox.setTextColor(lineColor);
+        valueTextBox.setScaleY(state / 255f);
+        if (refill) {
+            //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
+            valueTextBox.setTextColor(color);
+        }
     }
 
     private void updateCursorPopupPosition() {
@@ -383,7 +395,7 @@ public class MainChartView extends AbsChartView {
             drawXAxis(canvas);
 
             // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
-            if (drawData.getIsAllLinesInvisible()) {
+            if (drawData.getVisibleLinesCount() == 0) {
                 final float x = getWidth() / 2f - axisTextPaint.measureText(NO_DATA) / 2f;
                 final float y = graphAreaHeight / 2f;
 
@@ -443,10 +455,10 @@ public class MainChartView extends AbsChartView {
 
         canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, helperLinePaint);
 
-        final Set<Integer> invisibleLinesIndexes = drawData.getInvisibleLinesIndexes();
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (invisibleLinesIndexes.contains(i)) {
+            if (linesVisibilityState[i] == 0) {
                 continue;
             }
 

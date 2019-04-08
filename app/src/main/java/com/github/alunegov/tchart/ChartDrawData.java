@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Nullable;
 
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
+    public static final int VISIBILITY_STATE_ON = 255;
+
     // исходные данные графика
     private ChartInputData inputData;
     // Кол-во линий оцифровки осей
@@ -29,8 +31,8 @@ public class ChartDrawData {
     private int xLeftIndex, xRightIndex;
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
-    private Set<Integer> invisibleLinesIndexes;
-    private boolean isAllLinesInvisible;
+    private int[] linesVisibilityState;
+    private int visibleLinesCount;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
     private int yMin, yMax;
     // коэффициент пересчета значений в пиксели
@@ -47,8 +49,11 @@ public class ChartDrawData {
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
 
-        invisibleLinesIndexes = new HashSet<>(inputData.LinesValues.length);
-        isAllLinesInvisible = false;
+        linesVisibilityState = new int[inputData.LinesValues.length];
+        for (int i = 0; i < linesVisibilityState.length; i++) {
+            linesVisibilityState[i] = VISIBILITY_STATE_ON;
+        }
+        visibleLinesCount = inputData.LinesValues.length;
 
         linesPaths = new Path[inputData.LinesValues.length];
         for (int i = 0; i < linesPaths.length; i++) {
@@ -127,28 +132,20 @@ public class ChartDrawData {
         }
     }
 
-    public @NotNull Set<Integer> getInvisibleLinesIndexes() {
-        return invisibleLinesIndexes;
+    public @NotNull int[] getLinesVisibilityState() {
+        return linesVisibilityState;
     }
 
-    public boolean getIsAllLinesInvisible() {
-        return isAllLinesInvisible;
+    public int getVisibleLinesCount() {
+        return visibleLinesCount;
     }
 
-    public static void updateLineVisibility(@NotNull Set<Integer> invisibleLinesIndexes, int lineIndex, boolean visible) {
-        if (visible) {
-            invisibleLinesIndexes.remove(lineIndex);
-        } else {
-            invisibleLinesIndexes.add(lineIndex);
-        }
-    }
-
-    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
+    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
         if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
             return;
         }
 
-        updateLineVisibility(invisibleLinesIndexes, lineIndex, visible);
+        linesVisibilityState[lineIndex] = state;
 
         if (doUpdate) {
             updateYRange();
@@ -172,10 +169,10 @@ public class ChartDrawData {
         updateLinesAndAxis();
     }
 
-    public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull Set<Integer> invisibleLinesIndexes, @NotNull int[] range) {
+    public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
         if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
-        final @NotNull int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, invisibleLinesIndexes);
+        final @NotNull int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, linesVisibilityState);
 
         int yMinAt;
         switch (yMinMode) {
@@ -204,11 +201,11 @@ public class ChartDrawData {
         range[1] = yMaxAt;
     }
 
-    public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull Set<Integer> invisibleLinesIndexes, @NotNull int[] range) {
+    public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
         final int xLeftIndexAt = findXLeftIndex(xLeftValue);
         final int xRightIndexAt = findXRightIndex(xRightValue, xLeftIndexAt);
 
-        calcYRangeAt(xLeftIndexAt, xRightIndexAt, invisibleLinesIndexes, range);
+        calcYRangeAt(xLeftIndexAt, xRightIndexAt, linesVisibilityState, range);
     }
 
     public float getXScale() {
@@ -238,7 +235,7 @@ public class ChartDrawData {
     private final @NotNull int[] yRange = new int[2];
 
     private void updateYRange() {
-        calcYRangeAt(xLeftIndex, xRightIndex, invisibleLinesIndexes, yRange);
+        calcYRangeAt(xLeftIndex, xRightIndex, linesVisibilityState, yRange);
 
         yMin = yRange[0];
         yMax = yRange[1];
@@ -260,7 +257,7 @@ public class ChartDrawData {
             return;
         }
 
-        updateIsAllLinesInvisible();
+        updateVisibleLinesCount();
 
         updateMatrix();
 
@@ -277,12 +274,11 @@ public class ChartDrawData {
         //}
     }
 
-    private void updateIsAllLinesInvisible() {
-        isAllLinesInvisible = true;
+    private void updateVisibleLinesCount() {
+        visibleLinesCount = 0;
         for (int j = 0; j < inputData.LinesValues.length; j++) {
-            if (!invisibleLinesIndexes.contains(j)) {
-                isAllLinesInvisible = false;
-                break;
+            if (linesVisibilityState[j] != 0) {
+                visibleLinesCount++;
             }
         }
     }
@@ -351,7 +347,7 @@ public class ChartDrawData {
 
         for (int j = 0; j < linesLines.length; j++) {
             // don't calc invisible lines
-            if (invisibleLinesIndexes.contains(j)) {
+            if (linesVisibilityState[j] == 0) {
                 continue;
             }
 

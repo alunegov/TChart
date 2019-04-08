@@ -1,7 +1,6 @@
 package com.github.alunegov.tchart;
 
 import java.util.BitSet;
-import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -45,18 +44,19 @@ public class ChartInputData {
     }
 
     // Определение минимума и максимума по Y в указанном диапазоне X по всем сигналам
-    public @NotNull int[] findYMinMax(int l, int r, @NotNull Set<Integer> invisibleLinesIndexes) {
+    public @NotNull int[] findYMinMax(int l, int r, @NotNull int[] linesVisibilityState) {
         if (BuildConfig.DEBUG && (LinesValues.length <= 0)) throw new AssertionError();
         if (BuildConfig.DEBUG && (l > r)) throw new AssertionError();
-        if (BuildConfig.DEBUG && ((0 > l) || (r >= LinesValues[0].length))) throw new AssertionError();
+        if (BuildConfig.DEBUG && ((l < 0) || (r >= LinesValues[0].length))) throw new AssertionError();
 
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
 
         for (int i = 0; i < LinesValues.length; i++) {
-            if (invisibleLinesIndexes.contains(i)) {
+            if (linesVisibilityState[i] == 0) {
                 continue;
             }
+
             for (int j = l; j <= r; j++) {
                 int val = LinesValues[i][j];
                 if (val < min) {
@@ -72,8 +72,8 @@ public class ChartInputData {
     }
 
     // Определение абсолютного размаха (максимум - минимум) по Y в указанном диапазоне X по всем сигналам
-    public int findYAbsSwing(int l, int r, @NotNull Set<Integer> invisibleLinesIndexes) {
-        final int[] minMax = findYMinMax(l, r, invisibleLinesIndexes);
+    public int findYAbsSwing(int l, int r, @NotNull int[] linesVisibilityState) {
+        final int[] minMax = findYMinMax(l, r, linesVisibilityState);
         if (BuildConfig.DEBUG && (minMax.length != 2)) throw new AssertionError();
 
         return Math.abs(minMax[1] - minMax[0]);

@@ -4,10 +4,8 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
-import android.view.ViewConfiguration;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -93,12 +91,14 @@ public class PreviewChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, boolean visible, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, visible, false);
+    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
+        super.updateLineVisibility(lineIndex, state, false);
 
         if (doUpdate) {
-            updateCachedLines();
-            useCachedLines = true;
+            if (state == 0 || state == ChartDrawData.VISIBILITY_STATE_ON) {
+                updateCachedLines();
+                useCachedLines = true;
+            }
 
             invalidate();
         }
@@ -137,9 +137,9 @@ public class PreviewChartView extends AbsChartView {
         zone[1] = zoneRightValue;
     }
 
-    public void useCachedLines() {
+    private void useCachedLines() {
         if (!useCachedLines) {
-            Log.d("PCV", "useCachedLines");
+            //Log.d("PCV", "useCachedLines");
             updateCachedLines();
             useCachedLines = true;
         }
