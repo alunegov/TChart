@@ -9,11 +9,11 @@ import android.util.Log;
 import android.view.*;
 import android.widget.LinearLayout;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.List;
 import java.util.Locale;
+
+import org.jetbrains.annotations.NotNull;
 
 public class MainActivity extends AppCompatActivity {
     private static final String IS_LIGHT_PREF = "isLight";
@@ -44,15 +44,36 @@ public class MainActivity extends AppCompatActivity {
         final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         assert inflater != null;
 
+        final ChartInputDataMapper.ResourceLoader resourceLoader = new ChartInputDataMapper.ResourceLoader() {
+            @Override
+            public String[] listResources(@NotNull String path) throws IOException {
+                return getAssets().list(path);
+            }
+
+            @Override
+            public InputStream openResource(@NotNull String fileName) throws IOException {
+                return getAssets().open(fileName);
+            }
+        };
+
+        final ChartInputDataMapper.ColorParser colorParser = new ChartInputDataMapper.ColorParser() {
+            @Override
+            public int parseColor(String color) {
+                return Color.parseColor(color);
+            }
+        };
+
         try {
-            final String json = ChartUtils.readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);
+/*            final String json = ChartUtils.readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);
 
             final List<ChartInputData> charts = ChartInputDataMapper.load(json, new ChartInputDataMapper.ColorParser() {
                 @Override
                 public int parseColor(String color) {
                     return Color.parseColor(color);
                 }
-            });
+            });*/
+
+            final List<ChartInputData> charts = ChartInputDataMapper.load(resourceLoader, colorParser);
 
             for (int i = 0; i < charts.size(); i++) {
                 final View view = inflater.inflate(R.layout.telegram_chart_list_item, root, false);
@@ -65,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 root.addView(tc);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("MA", e.toString(), e);
         }
     }
 

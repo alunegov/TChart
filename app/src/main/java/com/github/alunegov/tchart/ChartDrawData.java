@@ -1,6 +1,5 @@
 package com.github.alunegov.tchart;
 
-import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Path;
 import android.graphics.RectF;
@@ -9,7 +8,6 @@ import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import simplify.Simplify;
 
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
@@ -20,7 +18,7 @@ public class ChartDrawData {
     // Преобразователь значения в текст для оцифровки оси X
     private AxisTextConverter xAxisTextConv;
     // режим нижней границы Y
-    private YMinMode yMinMode = YMinMode.ZERO;
+    private YMinMode yMinMode = YMinMode.RANGE;
     // область отображения графика
     private RectF area = new RectF();
     // флаг: область отображения графика задана
@@ -90,7 +88,7 @@ public class ChartDrawData {
 
     // отображаемый диапазон по X, фактические значения. М.б. не из XValues
     public void getXRange(@NotNull float[] range) {
-        assert (range != null) && (range.length == 2);
+        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
         range[0] = xLeftValue;
         range[1] = xRightValue;
@@ -99,7 +97,7 @@ public class ChartDrawData {
     // отображаемый диапазон по Х, индексы в XValues. М.б. -1/+1, чтобы "охватить" фактические значения
     // (см. findXLeftIndex и findXRightIndex)
     public void getXRange(@NotNull int[] range) {
-        assert (range != null) && (range.length == 2);
+        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
         range[0] = xLeftIndex;
         range[1] = xRightIndex;
@@ -107,7 +105,7 @@ public class ChartDrawData {
 
     // отображаемый диапазон по Х, значения в XValues
     public void getXRange(@NotNull long[] range) {
-        assert (range != null) && (range.length == 2);
+        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
         range[0] = inputData.XValues[xLeftIndex] < xLeftValue ? inputData.XValues[xLeftIndex + 1] : inputData.XValues[xLeftIndex];
         range[1] = inputData.XValues[xRightIndex] > xRightValue ? inputData.XValues[xRightIndex - 1] : inputData.XValues[xRightIndex];
@@ -160,7 +158,7 @@ public class ChartDrawData {
     }
 
     public void getYRange(@NotNull int[] range) {
-        assert (range != null) && (range.length == 2);
+        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
         range[0] = yMin;
         range[1] = yMax;
@@ -175,7 +173,7 @@ public class ChartDrawData {
     }
 
     public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull Set<Integer> invisibleLinesIndexes, @NotNull int[] range) {
-        assert (range != null) && (range.length == 2);
+        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
         final @NotNull int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, invisibleLinesIndexes);
 
@@ -185,15 +183,22 @@ public class ChartDrawData {
                 yMinAt = yMinMax[0];
                 break;
             case ZERO:
-                assert yMinMax[0] >= 0;
+                if (BuildConfig.DEBUG && (yMinMax[0] < 0)) throw new AssertionError();
                 yMinAt = 0;
                 break;
             default:
                 yMinAt = 0;
         }
 
-        // добавляем к максимуму часть размаха, чтобы сверху было немного места (так на ref, была видна пометка точки)
-        final int yMaxAt = yMinMax[1] + (int) (0.05 * (yMinMax[1] - yMin));
+        int yMaxAt = yMinMax[1];
+
+        // добавляем к минимуму/максимуму часть размаха, чтобы снизу/сверху было немного места (так на ref, была видна пометка точки)
+        // TODO: добавлять к минимуму не просто "часть размаха", а так, чтобы первая линия оцифровки была в "нулевом пикселе"
+        final int yDelta = (int) (0.05 * (yMaxAt - yMinAt));
+        if (yMinAt != 0) {
+            yMinAt -= yDelta;
+        }
+        yMaxAt += yDelta;
 
         range[0] = yMinAt;
         range[1] = yMaxAt;
@@ -368,7 +373,7 @@ public class ChartDrawData {
         }
     }
 
-    public Matrix getMatrix() {
+    public @NotNull Matrix getMatrix() {
         return matrix;
     }
 
@@ -424,9 +429,9 @@ public class ChartDrawData {
     private static final long MSEC_PER_DAY = 24 * MSEC_PER_HOUR;
 
     private void updateXAxisMarks() {
-        assert xAxisMarks != null;
-        assert axisLineCount > 0;
-        assert xAxisTextConv != null;
+        if (BuildConfig.DEBUG && (xAxisMarks == null)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (axisLineCount <= 0)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (xAxisTextConv == null)) throw new AssertionError();
 
         xAxisMarks.clear();
 
@@ -465,8 +470,8 @@ public class ChartDrawData {
     }
 
     private void updateYAxisMarks() {
-        assert yAxisMarks != null;
-        assert axisLineCount > 0;
+        if (BuildConfig.DEBUG && (yAxisMarks == null)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (axisLineCount <= 0)) throw new AssertionError();
 
         yAxisMarks.clear();
 
