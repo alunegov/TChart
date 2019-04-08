@@ -39,8 +39,6 @@ public class ChartInputData {
         LinesColors = new int[linesCount];
         this.linesType = linesType;
         this.flags = flags;
-
-
     }
 
     // Определение минимума и максимума по Y в указанном диапазоне X по всем сигналам

@@ -274,10 +274,11 @@ public class MainChartView extends AbsChartView {
         if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+        final boolean simpleStacked = simpleStacked();
 
         int visibleLinesCount = drawData.getVisibleLinesCount();
         // с учётом суммы всех значений
-        if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+        if (simpleStacked) {
             visibleLinesCount++;
         }
         final boolean recreate = visibleLinesCount != cursorValuesLayout.getChildCount();
@@ -299,7 +300,7 @@ public class MainChartView extends AbsChartView {
             }
 
             // для суммы всех значений
-            if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+            if (simpleStacked) {
                 inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
             }
         }
@@ -320,7 +321,7 @@ public class MainChartView extends AbsChartView {
                     inputData.LinesColors[i], linesVisibilityState[i], recreate);
         }
         // сумма всех значений
-        if (inputData.flags.get(ChartInputData.FLAG_STACKED)) {
+        if (simpleStacked) {
             if (BuildConfig.DEBUG && (k != (cursorValuesLayout.getChildCount() - 1))) throw new AssertionError();
 
             int sum = 0;
@@ -339,10 +340,21 @@ public class MainChartView extends AbsChartView {
         }
     }
 
+    private boolean simpleStacked() {
+        return inputData.flags.get(ChartInputData.FLAG_STACKED) && !inputData.flags.get(ChartInputData.FLAG_PERCENTAGE);
+    }
+
+    private boolean percentageStacked() {
+        return inputData.flags.get(ChartInputData.FLAG_PERCENTAGE);
+    }
+
     private void updateCursorPopupValueText(@NotNull View view, @NotNull String name, @NotNull String value, int color,
                                             int state, boolean refill) {
+        final float scale = state / 255f;
+        //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
+
         final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
-        lineNameTextBox.setScaleY(state / 255f);
+        lineNameTextBox.setScaleY(scale);
         if (refill) {
             lineNameTextBox.setText(name);
             //lineNameTextBox.setTextColor(lineColor);
@@ -350,9 +362,8 @@ public class MainChartView extends AbsChartView {
 
         final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
         valueTextBox.setText(value);
-        valueTextBox.setScaleY(state / 255f);
+        valueTextBox.setScaleY(scale);
         if (refill) {
-            //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
             valueTextBox.setTextColor(color);
         }
     }

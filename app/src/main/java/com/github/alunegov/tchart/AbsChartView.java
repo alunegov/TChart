@@ -26,7 +26,7 @@ public abstract class AbsChartView extends View {
 
     protected boolean horizontalMovement = false;
 
-    private int[] newLinesVisibilityState;
+    private int[] tmpLinesVisibilityState;
 
     public AbsChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -42,7 +42,7 @@ public abstract class AbsChartView extends View {
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
 
-        newLinesVisibilityState = new int[inputData.LinesValues.length];
+        tmpLinesVisibilityState = new int[inputData.LinesValues.length];
     }
 
     public void getXRange(@NotNull float[] range) {
@@ -126,11 +126,11 @@ public abstract class AbsChartView extends View {
 
     private void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, int state, @NotNull int[] range) {
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
-        System.arraycopy(linesVisibilityState, 0, newLinesVisibilityState, 0, linesVisibilityState.length);
+        System.arraycopy(linesVisibilityState, 0, tmpLinesVisibilityState, 0, linesVisibilityState.length);
 
-        newLinesVisibilityState[lineIndex] = state;
+        tmpLinesVisibilityState[lineIndex] = state;
 
-        drawData.calcYRangeAt(xLeftValue, xRightValue, newLinesVisibilityState, range);
+        drawData.calcYRangeAt(xLeftValue, xRightValue, tmpLinesVisibilityState, range);
     }
 
     // при изменении отображаемой зоны на графике
@@ -223,5 +223,9 @@ public abstract class AbsChartView extends View {
 
             canvas.drawLines(a2, 0, (linePtsCount - 1) << 2,  linesPaints[j]);
         }
+    }
+
+    protected void drawLinesStacked(@NotNull Canvas canvas) {
+
     }
 }

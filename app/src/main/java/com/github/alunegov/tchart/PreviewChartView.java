@@ -131,7 +131,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     public void getZone(@NotNull float[] zone) {
-        assert (zone != null) && (zone.length == 2);
+        if (BuildConfig.DEBUG && (zone.length != 2)) throw new AssertionError();
 
         zone[0] = zoneLeftValue;
         zone[1] = zoneRightValue;
@@ -151,8 +151,7 @@ public class PreviewChartView extends AbsChartView {
             return;
         }
 
-        assert getWidth() == w;
-        assert getHeight() == h;
+        if (BuildConfig.DEBUG && ((getWidth() != w) || (getHeight() != h))) throw new AssertionError();
         drawData.setArea(new RectF(0, 0, w, h));
 
         updateZoneLeftBorder(true);

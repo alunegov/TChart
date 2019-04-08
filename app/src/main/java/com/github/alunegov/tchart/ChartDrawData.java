@@ -18,7 +18,7 @@ public class ChartDrawData {
     // Кол-во линий оцифровки осей
     private int axisLineCount;
     // Преобразователь значения в текст для оцифровки оси X
-    private AxisTextConverter xAxisTextConv;
+    private AxisTextConverter xAxisTextCnv;
     // режим нижней границы Y
     private YMinMode yMinMode = YMinMode.RANGE;
     // область отображения графика
@@ -31,7 +31,9 @@ public class ChartDrawData {
     private int xLeftIndex, xRightIndex;
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
+    // состояние видимости линии (0 - не видима, 255 - видима)
     private int[] linesVisibilityState;
+    // количество видимых линий (с не нулевым состоянием)
     private int visibleLinesCount;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
     private int yMin, yMax;
@@ -70,9 +72,9 @@ public class ChartDrawData {
         pts = new float[(inputData.XValues.length - 1) * 4];
     }
 
-    public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextConv) {
+    public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextCnv) {
         this.axisLineCount = axisLineCount;
-        this.xAxisTextConv = xAxisTextConv;
+        this.xAxisTextCnv = xAxisTextCnv;
 
         xAxisMarks = new ArrayList<>();
         yAxisMarks = new ArrayList<>();
@@ -418,7 +420,7 @@ public class ChartDrawData {
     }*/
 
     private boolean getIsMarksUpdating() {
-        return (axisLineCount > 0) && (xAxisTextConv != null);
+        return (axisLineCount > 0) && (xAxisTextCnv != null);
     }
 
     private static final long MSEC_PER_HOUR = 60 * 60 * 1000L;
@@ -427,7 +429,7 @@ public class ChartDrawData {
     private void updateXAxisMarks() {
         if (BuildConfig.DEBUG && (xAxisMarks == null)) throw new AssertionError();
         if (BuildConfig.DEBUG && (axisLineCount <= 0)) throw new AssertionError();
-        if (BuildConfig.DEBUG && (xAxisTextConv == null)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (xAxisTextCnv == null)) throw new AssertionError();
 
         xAxisMarks.clear();
 
@@ -457,7 +459,7 @@ public class ChartDrawData {
 
         long i = startXValue;
         for (float x = startXPixel; x < w; x += stepPixel) {
-            final String text = xAxisTextConv.toText(i);
+            final String text = xAxisTextCnv.toText(i);
 
             xAxisMarks.add(new AxisMark(x, text));
 

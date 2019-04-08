@@ -207,6 +207,7 @@ public class TelegramChartView extends LinearLayout {
             // TODO: если нет изменения по Y, не нужно вызывать setYRange
             //if ((startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])) {
             lineVisibilityAnimation_lineIndex = lineIndex;
+
 //            t = SystemClock.elapsedRealtime();
 
             lineVisibilityAnimator.setValues(ymin_main, ymax_main, ymin_preview, ymax_preview, lineVisibilityState);
