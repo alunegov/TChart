@@ -1,33 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<CheckBox
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
+    android:id="@+id/line_checkbox"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    >
-
-    <CheckBox
-        android:id="@+id/line_checkbox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:checked="true"
-        android:layout_marginTop="2dp"
-        android:paddingLeft="@dimen/tchart_padding_checkbox"
-        android:paddingStart="@dimen/tchart_padding_checkbox"
-        android:saveEnabled="false"
-        android:text="@string/dummy"
-        android:textColor="?attr/tchart_line_name_text_color"
-        />
-
-    <View
-        android:id="@+id/lines_divider"
-        android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:layout_marginLeft="45dp"
-        android:layout_marginStart="45dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="6dp"
-        android:background="?attr/tchart_line_name_divider_color"
-        />
-
-</LinearLayout>
+    android:button="@drawable/rounded_checkbox_selector"
+    android:background="@drawable/rounded_checkbox_background"
+    android:text="@string/dummy"
+    android:textColor="#FFFFFF"
+    android:checked="true"
+    android:saveEnabled="false"
+    />

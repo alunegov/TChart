@@ -53,14 +53,29 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(range);
     }
 
-    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
+    public int getLineVisibilityState(int lineIndex) {
+        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+        return linesVisibilityState[lineIndex];
+    }
+
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
 //        synchronized (lock) {
             if (drawData == null) {
                 return;
             }
 
-            drawData.updateLineVisibility(lineIndex, state, true);
+            drawData.updateLineVisibility(lineIndex, exceptLine, state, true);
 
+            if (exceptLine) {
+                final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+                final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
+
+                for (int i = 0; i < linesPaints.length; i++) {
+                    if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
+                        linesPaints[i].setAlpha(otherLinesState);
+                    }
+                }
+            }
             linesPaints[lineIndex].setAlpha(state);
 
             if (doUpdate) {
@@ -124,10 +139,19 @@ public abstract class AbsChartView extends View {
         drawData.calcYRangeAt(xLeftValue, xRightValue, drawData.getLinesVisibilityState(), range);
     }
 
-    private void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, int state, @NotNull int[] range) {
+    private void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, boolean exceptLine, int state, @NotNull int[] range) {
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
-        System.arraycopy(linesVisibilityState, 0, tmpLinesVisibilityState, 0, linesVisibilityState.length);
+        if (exceptLine) {
+            final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
 
+            for (int i = 0; i < tmpLinesVisibilityState.length; i++) {
+                if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
+                    tmpLinesVisibilityState[i] = otherLinesState;
+                }
+            }
+        } else {
+            System.arraycopy(linesVisibilityState, 0, tmpLinesVisibilityState, 0, linesVisibilityState.length);
+        }
         tmpLinesVisibilityState[lineIndex] = state;
 
         drawData.calcYRangeAt(xLeftValue, xRightValue, tmpLinesVisibilityState, range);
@@ -143,11 +167,11 @@ public abstract class AbsChartView extends View {
     private final @NotNull float[] xRange = new float[2];
 
     // при включении/выключении графика
-    public void calcAnimationRanges(int lineIndex, int state, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
+    public void calcAnimationRanges(int lineIndex, boolean exceptLine, int state, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
         drawData.getYRange(yStartRange);
 
         drawData.getXRange(xRange);
-        calcYRangeAt(xRange[0], xRange[1], lineIndex, state, yStopRange);
+        calcYRangeAt(xRange[0], xRange[1], lineIndex, exceptLine, state, yStopRange);
     }
 
     protected void drawLines(@NotNull Canvas canvas) {
@@ -160,7 +184,7 @@ public abstract class AbsChartView extends View {
         final Path[] paths = drawData.getLinesPaths();
         if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
         for (int i = 0; i < paths.length; i++) {
-            if (linesVisibilityState[i] == 0) {
+            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
@@ -175,7 +199,7 @@ public abstract class AbsChartView extends View {
 
         if (BuildConfig.DEBUG && (lines.length != linesPaints.length)) throw new AssertionError();
         for (int i = 0; i < lines.length; i++) {
-            if (linesVisibilityState[i] == 0) {
+            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
@@ -199,7 +223,7 @@ public abstract class AbsChartView extends View {
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
         for (int j = 0; j < inputData.LinesValues.length; j++) {
-            if (linesVisibilityState[j] == 0) {
+            if (linesVisibilityState[j] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 

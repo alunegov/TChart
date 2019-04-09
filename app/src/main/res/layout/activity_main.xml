@@ -13,15 +13,6 @@
         style="@style/Toolbar"
         />
 
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:button="@drawable/rounded_checkbox_selector"
-        android:background="@drawable/rounded_checkbox_background"
-        android:text="sadfsadfsadf"
-        android:checked="true"
-        />
-
     <ScrollView
         android:id="@+id/scroll"
         android:layout_width="match_parent"

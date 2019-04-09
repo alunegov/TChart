@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         if (BuildConfig.DEBUG && (root == null)) throw new AssertionError();
 
         final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
+        if (inflater == null) throw new AssertionError();
 
         final ChartInputDataMapper.ResourceLoader resourceLoader = new ChartInputDataMapper.ResourceLoader() {
             @Override

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    >
 
     <LinearLayout
         android:orientation="horizontal"
@@ -104,12 +105,15 @@
         android:id="@+id/preview_chart"
         android:layout_width="match_parent"
         android:layout_height="@dimen/tchart_preview_height"
-        android:layout_marginBottom="@dimen/tchart_vertical_margin"/>
+        android:layout_marginBottom="@dimen/tchart_vertical_margin"
+        />
 
     <com.github.alunegov.tchart.LineNameListView
         android:id="@+id/line_names"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/tchart_vertical_margin"/>
+        android:layout_marginBottom="@dimen/tchart_vertical_margin"
+        app:flexWrap="wrap"
+        />
 
 </merge>

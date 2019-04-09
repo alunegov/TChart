@@ -3,7 +3,7 @@ package com.github.alunegov.tchart;
 import org.jetbrains.annotations.NotNull;
 
 public class LineName {
-    private String name;
+    private @NotNull String name;
     private int color;
 
     public LineName(@NotNull String name, int color) {
@@ -11,7 +11,7 @@ public class LineName {
         this.color = color;
     }
 
-    public String getName() {
+    public @NotNull String getName() {
         return name;
     }
 

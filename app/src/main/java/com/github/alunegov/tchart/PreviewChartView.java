@@ -30,7 +30,7 @@ public class PreviewChartView extends AbsChartView {
     private float moveStart;
     private float zoneLeftValue, zoneRightValue;
     private RectF zoneLeftBorder, zoneRightBorder;
-    private Bitmap cachedLines;
+    private Bitmap cachedLines = null;
     private boolean useCachedLines = true;
 
     // настройки отрисовки скрывающего слоя для зон слева и справа от выбранного диапазона по X
@@ -91,11 +91,12 @@ public class PreviewChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, state, false);
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
+        super.updateLineVisibility(lineIndex, exceptLine, state, false);
 
         if (doUpdate) {
-            if (state == 0 || state == ChartDrawData.VISIBILITY_STATE_ON) {
+            // обновляем кэш-картинку в конце анимации (0 или 255 в зависимости от направления)
+            if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
                 updateCachedLines();
                 useCachedLines = true;
             }
@@ -157,6 +158,7 @@ public class PreviewChartView extends AbsChartView {
         updateZoneLeftBorder(true);
         updateZoneRightBorder(true);
 
+        cachedLines = null;  // чтобы пересоздать кэш-картинку с новыми размерами
         updateCachedLines();
         useCachedLines = true;
 
@@ -321,11 +323,13 @@ public class PreviewChartView extends AbsChartView {
 
     private void updateCachedLines() {
         if (getWidth() == 0 || getHeight() == 0) {
-            cachedLines = null;
+            useCachedLines = false;
             return;
         }
 
-        cachedLines = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.RGB_565);
+        if (cachedLines == null) {
+            cachedLines = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.RGB_565);
+        }
 
         final Canvas canvas = new Canvas(cachedLines);
 

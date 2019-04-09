@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
     public static final int VISIBILITY_STATE_ON = 255;
+    public static final int VISIBILITY_STATE_OFF = 0;
 
     // исходные данные графика
     private ChartInputData inputData;
@@ -141,11 +142,20 @@ public class ChartDrawData {
         return visibleLinesCount;
     }
 
-    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
         if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
             return;
         }
 
+        if (exceptLine) {
+            final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
+
+            for (int i = 0; i < linesVisibilityState.length; i++) {
+                if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
+                    linesVisibilityState[i] = otherLinesState;
+                }
+            }
+        }
         linesVisibilityState[lineIndex] = state;
 
         if (doUpdate) {

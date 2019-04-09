@@ -182,8 +182,8 @@ public class MainChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, int state, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, state, doUpdate);
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
+        super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate);
 
         updateCursorPopup();
     }
@@ -287,12 +287,12 @@ public class MainChartView extends AbsChartView {
             //Log.d("MCV", "cursorValues recreated");
 
             final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
+            if (inflater == null) throw new AssertionError();
 
             cursorValuesLayout.removeAllViews();
 
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (linesVisibilityState[i] == 0) {
+                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                     continue;
                 }
 
@@ -311,7 +311,7 @@ public class MainChartView extends AbsChartView {
         // значения линий
         int k = 0;
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (linesVisibilityState[i] == 0) {
+            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
@@ -326,7 +326,7 @@ public class MainChartView extends AbsChartView {
 
             int sum = 0;
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (linesVisibilityState[i] == 0) {
+                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                     continue;
                 }
 
@@ -406,7 +406,7 @@ public class MainChartView extends AbsChartView {
             drawXAxis(canvas);
 
             // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
-            if (drawData.getVisibleLinesCount() == 0) {
+            if (drawData.getVisibleLinesCount() == ChartDrawData.VISIBILITY_STATE_OFF) {
                 final float x = getWidth() / 2f - axisTextPaint.measureText(NO_DATA) / 2f;
                 final float y = graphAreaHeight / 2f;
 
@@ -469,7 +469,7 @@ public class MainChartView extends AbsChartView {
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (linesVisibilityState[i] == 0) {
+            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 

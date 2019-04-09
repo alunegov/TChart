@@ -37,6 +37,7 @@ public class TelegramChartView extends LinearLayout {
 
     private final @NotNull ValueAnimator lineVisibilityAnimator = new ValueAnimator();
     private int lineVisibilityAnimation_lineIndex;
+    private boolean lineVisibilityAnimation_exceptLine;
 
     private final Handler h = new Handler();
 
@@ -52,7 +53,7 @@ public class TelegramChartView extends LinearLayout {
         setOrientation(VERTICAL);
 
         final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
+        if (inflater == null) throw new AssertionError();
 
         inflater.inflate(R.layout.view_telegram_chart, this, true);
 
@@ -68,7 +69,7 @@ public class TelegramChartView extends LinearLayout {
 
         mainChartView.setCursorPopupView(cursorPopupView);
         previewChartView.setOnChangeListener(previewChartChangeListener);
-        lineNamesView.setOnCheckedChangeListener(lineNamesCheckedChangeListener);
+        lineNamesView.setOnChangeListener(lineNamesChangeListener);
 
         //zoneChangeAnimator.setInterpolator(new FastOutSlowInInterpolator());
         zoneChangeAnimator.setDuration(200);
@@ -179,39 +180,55 @@ public class TelegramChartView extends LinearLayout {
         }
     };
 
-    private final LineNameListView.OnCheckedChangeListener lineNamesCheckedChangeListener = new LineNameListView.OnCheckedChangeListener() {
+    private final LineNameListView.OnChangeListener lineNamesChangeListener = new LineNameListView.OnChangeListener() {
         @Override
         public void onCheckedChange(int lineIndex, boolean isChecked) {
-            //mainChartView.updateLineVisibility(lineIndex, isChecked, true);
-            //previewChartView.updateLineVisibility(lineIndex, isChecked, true);
+            startLineVisibilityAnimation(lineIndex, false, isChecked);
+        }
 
-            lineVisibilityAnimator.cancel();
+        @Override
+        public void onLongClick(int lineIndex) {
+            startLineVisibilityAnimation(lineIndex, true, true);
+        }
+    };
 
-            final int[] startYRange = new int[2];
-            final int[] stopYRange = new int[2];
+    private void startLineVisibilityAnimation(int lineIndex, boolean exceptLine, boolean isChecked) {
+        //mainChartView.updateLineVisibility(lineIndex, isChecked, true);
+        //previewChartView.updateLineVisibility(lineIndex, isChecked, true);
 
-            final int startLineVisibilityState = isChecked ? 0 : ChartDrawData.VISIBILITY_STATE_ON;
-            final int stopLineVisibilityState = isChecked ? ChartDrawData.VISIBILITY_STATE_ON : 0;
+        lineVisibilityAnimator.cancel();
 
-            mainChartView.calcAnimationRanges(lineIndex, stopLineVisibilityState, startYRange, stopYRange);
-            final PropertyValuesHolder ymin_main = PropertyValuesHolder.ofInt("ymin_main", startYRange[0], stopYRange[0]);
-            final PropertyValuesHolder ymax_main = PropertyValuesHolder.ofInt("ymax_main", startYRange[1], stopYRange[1]);
+        final int[] startYRange = new int[2];
+        final int[] stopYRange = new int[2];
 
-            previewChartView.calcAnimationRanges(lineIndex, stopLineVisibilityState, startYRange, stopYRange);
-            final PropertyValuesHolder ymin_preview = PropertyValuesHolder.ofInt("ymin_preview", startYRange[0], stopYRange[0]);
-            final PropertyValuesHolder ymax_preview = PropertyValuesHolder.ofInt("ymax_preview", startYRange[1], stopYRange[1]);
+        int startLineVisibilityState;
+        if (exceptLine) {
+            startLineVisibilityState = mainChartView.getLineVisibilityState(lineIndex);
+        } else {
+            startLineVisibilityState = isChecked ? ChartDrawData.VISIBILITY_STATE_OFF : ChartDrawData.VISIBILITY_STATE_ON;
+        }
+        final int stopLineVisibilityState = isChecked ? ChartDrawData.VISIBILITY_STATE_ON : ChartDrawData.VISIBILITY_STATE_OFF;
 
-            final PropertyValuesHolder lineVisibilityState = PropertyValuesHolder.ofInt("lineVisibilityState", startLineVisibilityState, stopLineVisibilityState);
+        mainChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, startYRange, stopYRange);
+        final PropertyValuesHolder ymin_main = PropertyValuesHolder.ofInt("ymin_main", startYRange[0], stopYRange[0]);
+        final PropertyValuesHolder ymax_main = PropertyValuesHolder.ofInt("ymax_main", startYRange[1], stopYRange[1]);
 
-            // TODO: переход из/в состояние без графиков
-            // TODO: если нет изменения по Y, не нужно вызывать setYRange
-            //if ((startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])) {
-            lineVisibilityAnimation_lineIndex = lineIndex;
+        previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, startYRange, stopYRange);
+        final PropertyValuesHolder ymin_preview = PropertyValuesHolder.ofInt("ymin_preview", startYRange[0], stopYRange[0]);
+        final PropertyValuesHolder ymax_preview = PropertyValuesHolder.ofInt("ymax_preview", startYRange[1], stopYRange[1]);
+
+        final PropertyValuesHolder lineVisibilityState = PropertyValuesHolder.ofInt("lineVisibilityState", startLineVisibilityState, stopLineVisibilityState);
+
+        // TODO: переход из/в состояние без графиков
+        // TODO: если нет изменения по Y, не нужно вызывать setYRange
+        //if ((startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])) {
+        lineVisibilityAnimation_lineIndex = lineIndex;
+        lineVisibilityAnimation_exceptLine = exceptLine;
 
 //            t = SystemClock.elapsedRealtime();
 
-            lineVisibilityAnimator.setValues(ymin_main, ymax_main, ymin_preview, ymax_preview, lineVisibilityState);
-            lineVisibilityAnimator.start();
+        lineVisibilityAnimator.setValues(ymin_main, ymax_main, ymin_preview, ymax_preview, lineVisibilityState);
+        lineVisibilityAnimator.start();
 
 /*                ymin_main1 = startYRange[0];
                 ymax_main1 = startYRange[1];
@@ -248,8 +265,7 @@ public class TelegramChartView extends LinearLayout {
                         }
                     }
                 }, 16);*/
-        }
-    };
+    }
 
 /*    private static final long NanoSecPerMSec = 1000000L;
     private long prevFrameTimeNanos;
@@ -319,8 +335,10 @@ public class TelegramChartView extends LinearLayout {
             final int ymax_preview = (int) animation.getAnimatedValue("ymax_preview");
             final int lineVisibilityState = (int) animation.getAnimatedValue("lineVisibilityState");
 
-            mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityState, false);
-            previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityState, false);
+            mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                    lineVisibilityState, false);
+            previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                    lineVisibilityState, false);
 
             mainChartView.setYRange(ymin_main, ymax_main, true);
             previewChartView.setYRange(ymin_preview, ymax_preview, true);
@@ -368,9 +386,7 @@ public class TelegramChartView extends LinearLayout {
 
     private void optInputData(@NotNull ChartInputData inputData) {
         final long[] originalXValues = new long[inputData.XValues.length];
-        for (int i = 0; i < inputData.XValues.length; i++) {
-            originalXValues[i] = inputData.XValues[i];
-        }
+        System.arraycopy(inputData.XValues, 0, originalXValues, 0, inputData.XValues.length);
 
         float tol;
         //tol = (inputData.XValues[inputData.XValues.length - 1] - inputData.XValues[0]) / 10f;

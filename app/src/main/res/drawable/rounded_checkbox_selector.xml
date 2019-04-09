@@ -5,9 +5,12 @@
             <item>
                 <shape>
                     <size
-                        android:width="29dp"
+                        android:width="24dp"
                         android:height="24dp" />
                     <solid android:color="#00000000" />
+                    <stroke
+                        android:width="2dp"
+                        android:color="#00FF00" />
                     <padding
                         android:left="2dp"
                         android:top="2dp"
@@ -16,7 +19,7 @@
                 </shape>
             </item>
             <item
-                android:drawable="@drawable/icons8_checkmark_24"/>
+                android:drawable="@drawable/icons8_checkmark_24" />
         </layer-list>
     </item>
     <item android:state_checked="false">
@@ -24,7 +27,7 @@
             <item>
                 <shape>
                     <size
-                        android:width="0dp"
+                        android:width="15dp"
                         android:height="24dp" />
                     <solid android:color="#00000000" />
                     <stroke
