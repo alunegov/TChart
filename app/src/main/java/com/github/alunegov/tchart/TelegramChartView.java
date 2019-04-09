@@ -76,7 +76,7 @@ public class TelegramChartView extends LinearLayout {
         zoneChangeAnimator.addUpdateListener(zoneChangeAnimatorUpdateListener);
 
         //lineVisibilityAnimator.setInterpolator(new FastOutSlowInInterpolator());
-        lineVisibilityAnimator.setDuration(200);
+        //lineVisibilityAnimator.setDuration(200);
         lineVisibilityAnimator.addUpdateListener(lineVisibilityAnimatorUpdateListener);
 
         final DisplayMetrics dm = context.getResources().getDisplayMetrics();
@@ -334,18 +334,20 @@ public class TelegramChartView extends LinearLayout {
             final int ymin_preview = (int) animation.getAnimatedValue("ymin_preview");
             final int ymax_preview = (int) animation.getAnimatedValue("ymax_preview");
             final int lineVisibilityState = (int) animation.getAnimatedValue("lineVisibilityState");
-            //Log.d("TCV", String.format("lineVisibilityState = %d", lineVisibilityState));
+            //Log.d("TCV", String.format("ymin_main = %d, ymax_main = %d, lineVisibilityState = %d", ymin_main, ymax_main, lineVisibilityState));
 
             // порядок методов setYRange и updateLineVisibility важен, п.ч. setYRange сбрасывает кэш-картинку, а
-            // previewChartView восстанавливает её по завершению анимации (lineVisibilityState)
-
-            mainChartView.setYRange(ymin_main, ymax_main, false);
-            previewChartView.setYRange(ymin_preview, ymax_preview, false);
+            // previewChartView восстанавливает её по завершению анимации (lineVisibilityState) - сейчас это выключено.
+            // НО при обновлении ChartDrawData.updateLineVisibility пересчитываются y (updateYRange), а нам это не
+            // нужно - мы сами анимируем изменение.
 
             mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
-                    lineVisibilityState, true);
+                    lineVisibilityState, false, false);
             previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
-                    lineVisibilityState, true);
+                    lineVisibilityState, false, false);
+
+            mainChartView.setYRange(ymin_main, ymax_main, true);
+            previewChartView.setYRange(ymin_preview, ymax_preview, true);
 
             //Trace.endSection();
         }

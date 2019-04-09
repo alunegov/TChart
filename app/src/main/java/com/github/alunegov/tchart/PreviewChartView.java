@@ -91,23 +91,23 @@ public class PreviewChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, exceptLine, state, false);
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate, boolean doInvalidate) {
+        super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate, false);
 
         // TODO: обновляем кэш-картинку в конце анимации (0 или 255 в зависимости от направления)
-/*        if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
+        /*if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
             useCachedLines(false);
         }*/
 
-        if (doUpdate) {
+        if (doInvalidate) {
             invalidate();
         }
     }
 
     @Override
-    public void setYRange(int yMin, int yMax, boolean doUpdate) {
+    public void setYRange(int yMin, int yMax, boolean doUpdateAndInvalidate) {
         useCachedLines = false;
-        super.setYRange(yMin, yMax, doUpdate);
+        super.setYRange(yMin, yMax, doUpdateAndInvalidate);
     }
 
     @Override
@@ -321,6 +321,7 @@ public class PreviewChartView extends AbsChartView {
         Log.d("PCV", "updateCachedLines");
 
         if (getWidth() == 0 || getHeight() == 0) {
+            cachedLines = null;
             return false;
         }
 

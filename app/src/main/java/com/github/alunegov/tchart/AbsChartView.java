@@ -58,13 +58,13 @@ public abstract class AbsChartView extends View {
         return linesVisibilityState[lineIndex];
     }
 
-    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate, boolean doInvalidate) {
 //        synchronized (lock) {
             if (drawData == null) {
                 return;
             }
 
-            drawData.updateLineVisibility(lineIndex, exceptLine, state, true);
+            drawData.updateLineVisibility(lineIndex, exceptLine, state, doUpdate);
 
             if (exceptLine) {
                 final int[] linesVisibilityState = drawData.getLinesVisibilityState();
@@ -78,7 +78,7 @@ public abstract class AbsChartView extends View {
             }
             linesPaints[lineIndex].setAlpha(state);
 
-            if (doUpdate) {
+            if (doInvalidate) {
                 invalidate();
                 //postInvalidateDelayed(12);
             }
@@ -92,16 +92,16 @@ public abstract class AbsChartView extends View {
     private Executor executor = Executors.newSingleThreadExecutor();
     protected final @NotNull Object lock = new Object();
 
-    public void setYRange(int yMin, int yMax, boolean doUpdate) {
+    public void setYRange(int yMin, int yMax, boolean doUpdateAndInvalidate) {
         if (drawData == null) {
             return;
         }
 
-//        executor.execute(new QQ(yMin, yMax, doUpdate));
+//        executor.execute(new QQ(yMin, yMax, doUpdateAndInvalidate));
 
         drawData.setYRange(yMin, yMax);
 
-        if (doUpdate) {
+        if (doUpdateAndInvalidate) {
             invalidate();
             //postInvalidateDelayed(16);
         }
@@ -110,12 +110,12 @@ public abstract class AbsChartView extends View {
     private class QQ implements Runnable {
         int yMin;
         int yMax;
-        boolean doUpdate;
+        boolean doUpdateAndInvalidate;
 
-        public QQ(int yMin, int yMax, boolean doUpdate) {
+        public QQ(int yMin, int yMax, boolean doUpdateAndInvalidate) {
             this.yMin = yMin;
             this.yMax = yMax;
-            this.doUpdate = doUpdate;
+            this.doUpdateAndInvalidate = doUpdateAndInvalidate;
         }
 
         @Override
@@ -124,7 +124,7 @@ public abstract class AbsChartView extends View {
                 drawData.setYRange(yMin, yMax);
             }
 
-            if (doUpdate) {
+            if (doUpdateAndInvalidate) {
                 postInvalidateDelayed(0);
                 try {
                     Thread.sleep(16);
@@ -141,12 +141,15 @@ public abstract class AbsChartView extends View {
 
     private void calcYRangeAt(float xLeftValue, float xRightValue, int lineIndex, boolean exceptLine, int state, @NotNull int[] range) {
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+
         if (exceptLine) {
             final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
 
             for (int i = 0; i < tmpLinesVisibilityState.length; i++) {
                 if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
                     tmpLinesVisibilityState[i] = otherLinesState;
+                } else {
+                    tmpLinesVisibilityState[i] = ChartDrawData.VISIBILITY_STATE_OFF;
                 }
             }
         } else {

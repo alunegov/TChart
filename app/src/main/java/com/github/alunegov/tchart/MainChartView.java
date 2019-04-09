@@ -182,8 +182,8 @@ public class MainChartView extends AbsChartView {
     }
 
     @Override
-    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
-        super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate);
+    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate, boolean doInvalidate) {
+        super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate, doInvalidate);
 
         updateCursorPopup();
     }
