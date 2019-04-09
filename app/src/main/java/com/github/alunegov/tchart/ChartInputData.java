@@ -51,7 +51,7 @@ public class ChartInputData {
         int max = Integer.MIN_VALUE;
 
         for (int i = 0; i < LinesValues.length; i++) {
-            if (linesVisibilityState[i] == 0) {
+            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
                 continue;
             }
 

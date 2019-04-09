@@ -40,7 +40,7 @@ public abstract class AbsChartView extends View {
         drawData = new ChartDrawData(inputData);
         drawData.setXRange(inputData.XValues[0], inputData.XValues[inputData.XValues.length - 1], true);
 
-        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth);
+        linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth, inputData.linesType == ChartInputData.LineType.LINE);
 
         tmpLinesVisibilityState = new int[inputData.LinesValues.length];
     }
@@ -192,21 +192,45 @@ public abstract class AbsChartView extends View {
         }*/
 
         //
-        final float[][] lines = drawData.getLinesLines();
-
         drawData.getXRange(xIndexRange);
-        final int pointsCount = (xIndexRange[1] - xIndexRange[0] + 1 - 1) * 4;
+        int pointsCount = xIndexRange[1] - xIndexRange[0] + 1;
 
-        if (BuildConfig.DEBUG && (lines.length != linesPaints.length)) throw new AssertionError();
-        for (int i = 0; i < lines.length; i++) {
-            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
-                continue;
-            }
+        switch (inputData.linesType) {
+            case LINE:
+                pointsCount = (pointsCount - 1) << 2;
 
-//            if (BuildConfig.DEBUG && (lines[i].length != pointsCount)) throw new AssertionError();
-//            canvas.drawLines(lines[i], linesPaints[i]);
+                final float[][] lines = drawData.getLinesLines();
+                if (BuildConfig.DEBUG && (lines.length != linesPaints.length)) throw new AssertionError();
 
-            canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
+                for (int i = 0; i < lines.length; i++) {
+                    if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    //if (BuildConfig.DEBUG && (lines[i].length != pointsCount)) throw new AssertionError();
+                    //canvas.drawLines(lines[i], linesPaints[i]);
+
+                    canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
+                }
+
+                break;
+
+            case BAR:
+            case AREA:
+                final RectF[][] rects = drawData.getLinesRects();
+                if (BuildConfig.DEBUG && (rects.length != linesPaints.length)) throw new AssertionError();
+
+                for (int i = 0; i < rects.length; i++) {
+                    if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    for (int j = xIndexRange[0]; j <= xIndexRange[1]; j++) {
+                        canvas.drawRect(rects[i][j], linesPaints[i]);
+                    }
+                }
+
+                break;
         }
     }
 
@@ -245,9 +269,5 @@ public abstract class AbsChartView extends View {
 
             canvas.drawLines(a2, 0, (linePtsCount - 1) << 2,  linesPaints[j]);
         }
-    }
-
-    protected void drawLinesStacked(@NotNull Canvas canvas) {
-
     }
 }

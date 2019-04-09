@@ -6,6 +6,7 @@ import android.graphics.RectF;
 
 import java.util.*;
 
+import android.util.Log;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,8 +50,14 @@ public class ChartDrawData {
     private final @NotNull Matrix matrix = new Matrix();
     private float[] pts;
 
+    private RectF[][] linesRects;
+
     public ChartDrawData(@NotNull ChartInputData inputData) {
         this.inputData = inputData;
+
+        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+            yMinMode = YMinMode.ZERO;
+        }
 
         linesVisibilityState = new int[inputData.LinesValues.length];
         for (int i = 0; i < linesVisibilityState.length; i++) {
@@ -63,13 +70,16 @@ public class ChartDrawData {
             linesPaths[i] = new Path();
         }
 
-        linesLines = new float[inputData.LinesValues.length][];
-        for (int i = 0; i < linesLines.length; i++) {
-            if (BuildConfig.DEBUG && (inputData.XValues.length != inputData.LinesValues[i].length)) throw new AssertionError();
-            linesLines[i] = new float[(inputData.XValues.length - 1) * 4];
-        }
+        linesLines = new float[inputData.LinesValues.length][(inputData.XValues.length - 1) * 4];
 
         pts = new float[(inputData.XValues.length - 1) * 4];
+
+        linesRects = new RectF[inputData.LinesValues.length][inputData.XValues.length];
+        for (int i = 0; i < linesRects.length; i++) {
+            for (int j = 0; j < linesRects[i].length; j++) {
+                linesRects[i][j] = new RectF();
+            }
+        }
     }
 
     public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextCnv) {
@@ -235,6 +245,10 @@ public class ChartDrawData {
         return linesLines;
     }
 
+    public @NotNull RectF[][] getLinesRects() {
+        return linesRects;
+    }
+
     public @Nullable List<AxisMark> getXAxisMarks() {
         return xAxisMarks;
     }
@@ -288,7 +302,7 @@ public class ChartDrawData {
     private void updateVisibleLinesCount() {
         visibleLinesCount = 0;
         for (int j = 0; j < inputData.LinesValues.length; j++) {
-            if (linesVisibilityState[j] != 0) {
+            if (linesVisibilityState[j] != VISIBILITY_STATE_OFF) {
                 visibleLinesCount++;
             }
         }
@@ -353,29 +367,75 @@ public class ChartDrawData {
 //            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4)) throw new AssertionError();
         }*/
 
-        final int linePtsCount = xRightIndex - xLeftIndex + 1;
+        int linePtsCount = xRightIndex - xLeftIndex + 1;
 
-        for (int j = 0; j < linesLines.length; j++) {
-            // don't calc invisible lines
-            if (linesVisibilityState[j] == 0) {
-                continue;
-            }
+        switch (inputData.linesType) {
+            case LINE:
+                linePtsCount = (linePtsCount - 1) << 1;
 
-            int k = 0;
-            pts[k] = inputData.XValues[xLeftIndex];
-            pts[k + 1] = inputData.LinesValues[j][xLeftIndex];
-            k += 2;
-            for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
-                pts[k] = inputData.XValues[i];
-                pts[k + 1] = inputData.LinesValues[j][i];
-                pts[k + 2] = pts[k];
-                pts[k + 3] = pts[k + 1];
-                k += 4;
-            }
-            pts[k] = inputData.XValues[xRightIndex];
-            pts[k + 1] = inputData.LinesValues[j][xRightIndex];
+                for (int j = 0; j < linesLines.length; j++) {
+                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
 
-            matrix.mapPoints(linesLines[j], 0, pts, 0, (linePtsCount - 1) << 1);
+                    int k = 0;
+                    pts[k] = inputData.XValues[xLeftIndex];
+                    pts[k + 1] = inputData.LinesValues[j][xLeftIndex];
+                    k += 2;
+                    for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
+                        pts[k] = inputData.XValues[i];
+                        pts[k + 1] = inputData.LinesValues[j][i];
+                        pts[k + 2] = pts[k];
+                        pts[k + 3] = pts[k + 1];
+                        k += 4;
+                    }
+                    pts[k] = inputData.XValues[xRightIndex];
+                    pts[k + 1] = inputData.LinesValues[j][xRightIndex];
+
+                    matrix.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
+
+                    if (BuildConfig.DEBUG && ((k + 2) != linePtsCount * 2)) throw new AssertionError();
+                }
+
+                break;
+
+            case BAR:
+            case AREA:
+                final float rectWidth = area.width() / linePtsCount;
+                //Log.d("CDD", String.format("linePtsCount = %d, rectWidth = %f", linePtsCount, rectWidth));
+
+                int l = -1;
+                for (int j = 0; j < linesLines.length; j++) {
+                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    final RectF[] lineRects = linesRects[j];
+
+                    if (l == -1) {
+                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                            lineRects[i].left = xToPixel(inputData.XValues[i]);
+                            lineRects[i].top = yToPixel(inputData.LinesValues[j][i]);
+                            lineRects[i].bottom = area.bottom;
+                        }
+                    } else {
+                        final RectF[] prevLineRects = linesRects[l];
+
+                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                            lineRects[i].left = prevLineRects[i].left;
+                            lineRects[i].top = prevLineRects[i].top - yToPixel(inputData.LinesValues[j][i]);
+                            lineRects[i].bottom = prevLineRects[i].top;
+                        }
+                    }
+                    l = j;
+
+                    lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
+                    for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                        lineRects[i - 1].right = lineRects[i].left;
+                    }
+                }
+
+                break;
         }
     }
 

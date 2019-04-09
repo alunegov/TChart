@@ -110,9 +110,9 @@ public class MainChartView extends AbsChartView {
         axisTextPaint.setStyle(Paint.Style.FILL);
         axisTextPaint.setTextSize(axisTextSize);
 
-        yAxisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth);
+        yAxisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth, true);
 
-        helperLinePaint = ChartUtils.makeLinePaint(cursorLineColor, cursorLineWidth);
+        helperLinePaint = ChartUtils.makeLinePaint(cursorLineColor, cursorLineWidth, true);
 
         updateGraphAreaHeight();
     }

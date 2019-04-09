@@ -37,20 +37,26 @@ public class ChartUtils {
         return new String(buffer, charsetName);
     }
 
-    public static Paint makeLinePaint(int color, float width) {
-        Paint paint = new Paint();
-        paint.setAntiAlias(true);
+    public static Paint makeLinePaint(int color, float width, boolean liney) {
+        final Paint paint = new Paint();
+
         paint.setColor(color);
-        paint.setStrokeWidth(width);
-        paint.setStyle(Paint.Style.STROKE);
+        if (liney) {
+            paint.setAntiAlias(true);
+            paint.setStrokeWidth(width);
+            paint.setStyle(Paint.Style.STROKE);
+        } else {
+            paint.setStyle(Paint.Style.FILL);
+        }
 
         return paint;
     }
 
-    public static Paint[] makeLinesPaints(int[] colors, float width) {
-        Paint[] paints = new Paint[colors.length];
+    public static Paint[] makeLinesPaints(int[] colors, float width, boolean liney) {
+        final Paint[] paints = new Paint[colors.length];
+
         for (int i = 0; i < colors.length; i++) {
-            paints[i] = makeLinePaint(colors[i], width);
+            paints[i] = makeLinePaint(colors[i], width, liney);
         }
 
         return paints;

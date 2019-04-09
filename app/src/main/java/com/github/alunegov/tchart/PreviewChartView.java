@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 
@@ -82,8 +83,7 @@ public class PreviewChartView extends AbsChartView {
         updateZoneLeftBorder(false);
         updateZoneRightBorder(false);
 
-        updateCachedLines();
-        useCachedLines = true;
+        useCachedLines(true);
 
         // оповещение через onChangeListener. если нужно получить зону, то есть getZone
 
@@ -94,13 +94,12 @@ public class PreviewChartView extends AbsChartView {
     public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
         super.updateLineVisibility(lineIndex, exceptLine, state, false);
 
-        if (doUpdate) {
-            // обновляем кэш-картинку в конце анимации (0 или 255 в зависимости от направления)
-            if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
-                updateCachedLines();
-                useCachedLines = true;
-            }
+        // TODO: обновляем кэш-картинку в конце анимации (0 или 255 в зависимости от направления)
+/*        if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
+            useCachedLines(false);
+        }*/
 
+        if (doUpdate) {
             invalidate();
         }
     }
@@ -138,11 +137,9 @@ public class PreviewChartView extends AbsChartView {
         zone[1] = zoneRightValue;
     }
 
-    private void useCachedLines() {
-        if (!useCachedLines) {
-            //Log.d("PCV", "useCachedLines");
-            updateCachedLines();
-            useCachedLines = true;
+    private void useCachedLines(boolean force) {
+        if (!useCachedLines || force) {
+            useCachedLines = updateCachedLines();
         }
     }
 
@@ -159,8 +156,7 @@ public class PreviewChartView extends AbsChartView {
         updateZoneRightBorder(true);
 
         cachedLines = null;  // чтобы пересоздать кэш-картинку с новыми размерами
-        updateCachedLines();
-        useCachedLines = true;
+        useCachedLines(true);
 
         //invalidate();
     }
@@ -224,7 +220,7 @@ public class PreviewChartView extends AbsChartView {
                             }
                         }
 
-                        useCachedLines();
+                        useCachedLines(false);
 
                         break;
                     }
@@ -321,10 +317,11 @@ public class PreviewChartView extends AbsChartView {
         }
     }
 
-    private void updateCachedLines() {
+    private boolean updateCachedLines() {
+        Log.d("PCV", "updateCachedLines");
+
         if (getWidth() == 0 || getHeight() == 0) {
-            useCachedLines = false;
-            return;
+            return false;
         }
 
         if (cachedLines == null) {
@@ -337,6 +334,8 @@ public class PreviewChartView extends AbsChartView {
         canvas.drawColor(backColor);
 
         super.drawLines(canvas);
+
+        return true;
     }
 
     @Override

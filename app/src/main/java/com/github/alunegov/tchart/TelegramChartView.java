@@ -334,14 +334,18 @@ public class TelegramChartView extends LinearLayout {
             final int ymin_preview = (int) animation.getAnimatedValue("ymin_preview");
             final int ymax_preview = (int) animation.getAnimatedValue("ymax_preview");
             final int lineVisibilityState = (int) animation.getAnimatedValue("lineVisibilityState");
+            //Log.d("TCV", String.format("lineVisibilityState = %d", lineVisibilityState));
+
+            // порядок методов setYRange и updateLineVisibility важен, п.ч. setYRange сбрасывает кэш-картинку, а
+            // previewChartView восстанавливает её по завершению анимации (lineVisibilityState)
+
+            mainChartView.setYRange(ymin_main, ymax_main, false);
+            previewChartView.setYRange(ymin_preview, ymax_preview, false);
 
             mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
-                    lineVisibilityState, false);
+                    lineVisibilityState, true);
             previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
-                    lineVisibilityState, false);
-
-            mainChartView.setYRange(ymin_main, ymax_main, true);
-            previewChartView.setYRange(ymin_preview, ymax_preview, true);
+                    lineVisibilityState, true);
 
             //Trace.endSection();
         }
