@@ -113,7 +113,7 @@ public class PreviewChartView extends AbsChartView {
     @Override
     protected void drawLines(@NotNull Canvas canvas) {
         if (useCachedLines) {
-            assert cachedLines != null;
+            if (BuildConfig.DEBUG && (cachedLines == null)) throw new AssertionError();
             canvas.drawBitmap(cachedLines, 0, 0, null);
         } else {
             super.drawLines(canvas);
@@ -123,7 +123,7 @@ public class PreviewChartView extends AbsChartView {
     @Override
     protected void drawLines2(@NotNull Canvas canvas) {
         if (useCachedLines) {
-            assert cachedLines != null;
+            if (BuildConfig.DEBUG && (cachedLines == null)) throw new AssertionError();
             canvas.drawBitmap(cachedLines, 0, 0, null);
         } else {
             super.drawLines2(canvas);

@@ -39,10 +39,10 @@ public class MainActivity extends AppCompatActivity {
         setTitle(getString(R.string.activity_title));
 
         final LinearLayout root = (LinearLayout) findViewById(R.id.root);
-        assert root != null;
+        if (BuildConfig.DEBUG && (root == null)) throw new AssertionError();
 
         final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        assert inflater != null;
+        if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
 
         final ChartInputDataMapper.ResourceLoader resourceLoader = new ChartInputDataMapper.ResourceLoader() {
             @Override

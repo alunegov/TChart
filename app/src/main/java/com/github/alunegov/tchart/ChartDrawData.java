@@ -64,8 +64,7 @@ public class ChartDrawData {
 
         linesLines = new float[inputData.LinesValues.length][];
         for (int i = 0; i < linesLines.length; i++) {
-            if (BuildConfig.DEBUG && (inputData.XValues.length != inputData.LinesValues[i].length))
-                throw new AssertionError();
+            if (BuildConfig.DEBUG && (inputData.XValues.length != inputData.LinesValues[i].length)) throw new AssertionError();
             linesLines[i] = new float[(inputData.XValues.length - 1) * 4];
         }
 
@@ -341,8 +340,7 @@ public class ChartDrawData {
             lineLines[k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
             lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
 
-//            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4))
-//                throw new AssertionError();
+//            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4)) throw new AssertionError();
         }*/
 
         final int linePtsCount = xRightIndex - xLeftIndex + 1;

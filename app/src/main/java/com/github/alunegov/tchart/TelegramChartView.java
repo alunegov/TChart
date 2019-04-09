@@ -52,7 +52,7 @@ public class TelegramChartView extends LinearLayout {
         setOrientation(VERTICAL);
 
         final LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        assert inflater != null;
+        if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
 
         inflater.inflate(R.layout.view_telegram_chart, this, true);
 

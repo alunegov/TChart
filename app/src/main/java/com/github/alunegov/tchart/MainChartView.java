@@ -135,7 +135,7 @@ public class MainChartView extends AbsChartView {
     }
 
     public void setCursorPopupView(View cursorPopupView) {
-        assert cursorPopupView != null;
+        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
 
         this.cursorPopupView = cursorPopupView;
 
@@ -257,7 +257,7 @@ public class MainChartView extends AbsChartView {
     }
 
     private void updateCursorPopup() {
-        assert cursorPopupView != null;
+        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
 
         if (cursorIndex == NO_CURSOR) {
             cursorPopupView.setVisibility(GONE);
@@ -270,7 +270,7 @@ public class MainChartView extends AbsChartView {
 
     // создание списка видов в cursorPopupWindow со значениями курсора на видимых сигналах
     private void updateCursorPopupValues() {
-        assert cursorPopupView != null;
+        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
         if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
@@ -287,7 +287,7 @@ public class MainChartView extends AbsChartView {
             //Log.d("MCV", "cursorValues recreated");
 
             final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            assert inflater != null;
+            if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
 
             cursorValuesLayout.removeAllViews();
 
@@ -369,7 +369,7 @@ public class MainChartView extends AbsChartView {
     }
 
     private void updateCursorPopupPosition() {
-        assert cursorPopupView != null;
+        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
 
         if (cursorIndex == NO_CURSOR) {
             cursorPopupView.setVisibility(GONE);
@@ -423,7 +423,7 @@ public class MainChartView extends AbsChartView {
 
     private void drawXAxis(@NotNull Canvas canvas) {
         final List<ChartDrawData.AxisMark> marks = drawData.getXAxisMarks();
-        assert marks != null;
+        if (BuildConfig.DEBUG && (marks == null)) throw new AssertionError();
 
         final float y = getHeight() - xAxisTextVerticalMargin;
 
@@ -437,7 +437,7 @@ public class MainChartView extends AbsChartView {
 
     private void drawYAxis(@NotNull Canvas canvas) {
         final List<ChartDrawData.AxisMark> marks = drawData.getYAxisMarks();
-        assert marks != null;
+        if (BuildConfig.DEBUG && (marks == null)) throw new AssertionError();
 
         boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
         final int w = getWidth();

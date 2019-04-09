@@ -151,14 +151,14 @@ public abstract class AbsChartView extends View {
     }
 
     protected void drawLines(@NotNull Canvas canvas) {
-        assert drawData != null;
-        assert linesPaints != null;
+        if (BuildConfig.DEBUG && (drawData == null)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (linesPaints == null)) throw new AssertionError();
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 
 /*        //
         final Path[] paths = drawData.getLinesPaths();
-        assert paths.length == linesPaints.length;
+        if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
         for (int i = 0; i < paths.length; i++) {
             if (linesVisibilityState[i] == 0) {
                 continue;
@@ -173,15 +173,13 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(xIndexRange);
         final int pointsCount = (xIndexRange[1] - xIndexRange[0] + 1 - 1) * 4;
 
-        if (BuildConfig.DEBUG && (lines.length != linesPaints.length))
-            throw new AssertionError();
+        if (BuildConfig.DEBUG && (lines.length != linesPaints.length)) throw new AssertionError();
         for (int i = 0; i < lines.length; i++) {
             if (linesVisibilityState[i] == 0) {
                 continue;
             }
 
-//            if (BuildConfig.DEBUG && (lines[i].length != pointsCount))
-//                throw new AssertionError();
+//            if (BuildConfig.DEBUG && (lines[i].length != pointsCount)) throw new AssertionError();
 //            canvas.drawLines(lines[i], linesPaints[i]);
 
             canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);

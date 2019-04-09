@@ -50,7 +50,7 @@ public class LineNameListView extends LinearLayout {
 
     public void setLineNames(@NotNull LineName[] lineNames) {
         final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        assert inflater != null;
+        if (BuildConfig.DEBUG && (inflater == null)) throw new AssertionError();
 
         removeAllViews();
 
