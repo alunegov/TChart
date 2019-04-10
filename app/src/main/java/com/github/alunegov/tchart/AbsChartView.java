@@ -66,17 +66,19 @@ public abstract class AbsChartView extends View {
 
             drawData.updateLineVisibility(lineIndex, exceptLine, state, doUpdate);
 
-            if (exceptLine) {
-                final int[] linesVisibilityState = drawData.getLinesVisibilityState();
-                final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
+            if (inputData.linesType == ChartInputData.LineType.LINE) {
+                if (exceptLine) {
+                    final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+                    final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
 
-                for (int i = 0; i < linesPaints.length; i++) {
-                    if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
-                        linesPaints[i].setAlpha(otherLinesState);
+                    for (int i = 0; i < linesPaints.length; i++) {
+                        if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
+                            linesPaints[i].setAlpha(otherLinesState);
+                        }
                     }
                 }
+                linesPaints[lineIndex].setAlpha(state);
             }
-            linesPaints[lineIndex].setAlpha(state);
 
             if (doInvalidate) {
                 invalidate();

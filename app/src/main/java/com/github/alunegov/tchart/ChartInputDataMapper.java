@@ -139,7 +139,7 @@ public class ChartInputDataMapper {
     private static int detectPointsCount(@NotNull JSONArray jColumns) throws JSONException {
         final JSONArray jFirstLine = jColumns.getJSONArray(0);
         return jFirstLine.length() - 1;  // without lineId at [0]
-        //return 100;
+        //return 90;
     }
 
     private static ChartInputData.LineType detectLinesType(@NotNull JSONObject jTypes) throws JSONException/*, IllegalArgumentException*/ {

@@ -370,6 +370,14 @@ public class TelegramChartView extends LinearLayout {
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
+        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+            final @NotNull int[] linesVisibilityState = new int[inputData.LinesValues.length];
+            for (int i = 0; i < linesVisibilityState.length; i++) {
+                linesVisibilityState[i] = ChartDrawData.VISIBILITY_STATE_ON;
+            }
+            inputData.updateStackedSum(linesVisibilityState);
+        }
+
         final LineName[] linesNames = new LineName[inputData.LinesNames.length];
         for (int i = 0; i < inputData.LinesNames.length; i++) {
             linesNames[i] = new LineName(inputData.LinesNames[i], inputData.LinesColors[i]);

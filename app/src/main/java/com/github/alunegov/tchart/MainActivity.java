@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         setTitle(getString(R.string.activity_title));
 
         final LinearLayout root = (LinearLayout) findViewById(R.id.root);
-        if (BuildConfig.DEBUG && (root == null)) throw new AssertionError();
+        if (root == null) throw new AssertionError();
 
         final LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (inflater == null) throw new AssertionError();

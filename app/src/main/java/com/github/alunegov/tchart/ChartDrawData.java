@@ -411,11 +411,12 @@ public class ChartDrawData {
                     }
 
                     final RectF[] lineRects = linesRects[j];
-
+                    final float lineK = (float) linesVisibilityState[j] / ChartDrawData.VISIBILITY_STATE_ON;
+                    
                     if (l == -1) {
                         for (int i = xLeftIndex; i <= xRightIndex; i++) {
                             lineRects[i].left = xToPixel(inputData.XValues[i]);
-                            lineRects[i].top = yToPixel(inputData.LinesValues[j][i]);
+                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK));
                             lineRects[i].bottom = area.bottom;
                         }
                     } else {
@@ -423,7 +424,7 @@ public class ChartDrawData {
 
                         for (int i = xLeftIndex; i <= xRightIndex; i++) {
                             lineRects[i].left = prevLineRects[i].left;
-                            lineRects[i].top = prevLineRects[i].top - yToPixel(inputData.LinesValues[j][i]);
+                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK)) * scaleY;
                             lineRects[i].bottom = prevLineRects[i].top;
                         }
                     }
@@ -512,6 +513,8 @@ public class ChartDrawData {
             stepValue = stepValue / MSEC_PER_HOUR * MSEC_PER_HOUR;
         }
 
+        if (BuildConfig.DEBUG && (stepValue == 0)) throw new AssertionError();
+
         final float stepPixel = stepValue * scaleX;
         if (stepPixel <= 0) {
             return;
@@ -565,6 +568,10 @@ public class ChartDrawData {
         while (k > 0) {
             stepValue *= 10;
             k--;
+        }
+
+        if (stepValue == 0) {
+            return;
         }
 
         final float stepPixel = stepValue * scaleY;

@@ -23,7 +23,7 @@ public class ChartInputData {
     //
     public BitSet flags;
 
-    public int[] stackedSum;
+    private int[] stackedSum = null;
 
     public ChartInputData(int linesCount, int pointsCount, LineType linesType) {
         this(linesCount, pointsCount, linesType, new BitSet());
@@ -41,32 +41,81 @@ public class ChartInputData {
         this.flags = flags;
     }
 
+    public void updateStackedSum(@NotNull int[] linesVisibilityState) {
+        if (stackedSum == null) {
+            stackedSum = new int[XValues.length];
+        }
+
+        for (int i = 0; i < XValues.length; i++) {
+            stackedSum[i] = 0;
+        }
+
+        for (int j = 0; j < LinesValues.length; j++) {
+            if (linesVisibilityState[j] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            final float lineK = (float) linesVisibilityState[j] / ChartDrawData.VISIBILITY_STATE_ON;
+
+            for (int i = 0; i < XValues.length; i++) {
+                stackedSum[i] += (int) (LinesValues[j][i] * lineK);
+            }
+        }
+    }
+
     // Определение минимума и максимума по Y в указанном диапазоне X по всем сигналам
     public @NotNull int[] findYMinMax(int l, int r, @NotNull int[] linesVisibilityState) {
-        if (BuildConfig.DEBUG && (LinesValues.length <= 0)) throw new AssertionError();
         if (BuildConfig.DEBUG && (l > r)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (LinesValues.length <= 0)) throw new AssertionError();
         if (BuildConfig.DEBUG && ((l < 0) || (r >= LinesValues[0].length))) throw new AssertionError();
 
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
 
-        for (int i = 0; i < LinesValues.length; i++) {
-            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
-                continue;
-            }
+        switch (linesType) {
+            case LINE:
+                for (int j = 0; j < LinesValues.length; j++) {
+                    if (linesVisibilityState[j] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
 
-            for (int j = l; j <= r; j++) {
-                int val = LinesValues[i][j];
-                if (val < min) {
-                    min = val;
+                    for (int i = l; i <= r; i++) {
+                        int val = LinesValues[j][i];
+                        if (val < min) {
+                            min = val;
+                        }
+                        if (val > max) {
+                            max = val;
+                        }
+                    }
                 }
-                if (val > max) {
-                    max = val;
+
+                break;
+
+            case BAR:
+            case AREA:
+                updateStackedSum(linesVisibilityState);
+
+                for (int i = l; i <= r; i++) {
+                    int val = stackedSum[i];
+                    if (val < min) {
+                        min = val;
+                    }
+                    if (val > max) {
+                        max = val;
+                    }
                 }
-            }
+
+                break;
+
+/*            case AREA:
+                min = 0;
+                max = 100;
+
+                break;*/
         }
 
-        return new int[] {min, max};
+        return new int[]{min, max};
     }
 
     // Определение абсолютного размаха (максимум - минимум) по Y в указанном диапазоне X по всем сигналам
