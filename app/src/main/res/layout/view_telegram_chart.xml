@@ -70,8 +70,6 @@
                     android:id="@+id/cursor_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingRight="14dp"
-                    android:paddingEnd="14dp"
                     android:text="@string/dummy"
                     android:textColor="?attr/tchart_title_color"
                     android:textSize="14sp"
@@ -114,6 +112,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/tchart_vertical_margin"
         app:flexWrap="wrap"
+        app:showDivider="middle"
+        app:dividerDrawable="@drawable/line_name_list_divider"
         />
 
 </merge>

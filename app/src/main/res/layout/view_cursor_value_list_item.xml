@@ -8,11 +8,20 @@
     >
 
     <TextView
+        android:id="@+id/cursor_percent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/dummy"
+        android:textColor="?attr/tchart_cursor_line_name_text_color"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        />
+
+    <TextView
         android:id="@+id/cursor_line_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingRight="@dimen/tchart_cursor_value_right_padding"
-        android:paddingEnd="@dimen/tchart_cursor_value_right_padding"
         android:text="@string/dummy"
         android:textColor="?attr/tchart_cursor_line_name_text_color"
         android:textSize="14sp"

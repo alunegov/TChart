@@ -23,7 +23,7 @@ public class ChartInputData {
     //
     public BitSet flags;
 
-    private int[] stackedSum = null;
+    public int[] stackedSum = null;
 
     public ChartInputData(int linesCount, int pointsCount, LineType linesType) {
         this(linesCount, pointsCount, linesType, new BitSet());
@@ -93,7 +93,6 @@ public class ChartInputData {
                 break;
 
             case BAR:
-            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
                 updateStackedSum(linesVisibilityState);
 
                 for (int i = l; i <= r; i++) {
@@ -108,11 +107,11 @@ public class ChartInputData {
 
                 break;
 
-/*            case AREA:
+            case AREA:
                 min = 0;
                 max = 100;
 
-                break;*/
+                break;
         }
 
         return new int[]{min, max};

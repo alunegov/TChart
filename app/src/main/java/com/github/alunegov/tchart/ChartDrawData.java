@@ -168,6 +168,9 @@ public class ChartDrawData {
         }
         linesVisibilityState[lineIndex] = state;
 
+        // не смотрим на doUpdate, при вызове перестраиваются значения плашки
+        updateVisibleLinesCount();
+
         if (doUpdate) {
             updateYRange();
             updateScales();
@@ -282,7 +285,7 @@ public class ChartDrawData {
             return;
         }
 
-        updateVisibleLinesCount();
+        //updateVisibleLinesCount();
 
         updateMatrix();
 
@@ -369,6 +372,11 @@ public class ChartDrawData {
 
         int linePtsCount = xRightIndex - xLeftIndex + 1;
 
+        final float rectWidth = area.width() / linePtsCount;
+        //Log.d("CDD", String.format("linePtsCount = %d, rectWidth = %f", linePtsCount, rectWidth));
+
+        int l;
+
         switch (inputData.linesType) {
             case LINE:
                 linePtsCount = (linePtsCount - 1) << 1;
@@ -400,11 +408,7 @@ public class ChartDrawData {
                 break;
 
             case BAR:
-            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
-                final float rectWidth = area.width() / linePtsCount;
-                //Log.d("CDD", String.format("linePtsCount = %d, rectWidth = %f", linePtsCount, rectWidth));
-
-                int l = -1;
+                l = -1;
                 for (int j = 0; j < linesLines.length; j++) {
                     if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
                         continue;
@@ -434,6 +438,45 @@ public class ChartDrawData {
                     for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                         lineRects[i - 1].right = lineRects[i].left;
                     }
+                    lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
+                }
+
+                break;
+
+            case AREA:
+                inputData.updateStackedSum(linesVisibilityState);
+
+                l = -1;
+                for (int j = 0; j < linesLines.length; j++) {
+                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    final RectF[] lineRects = linesRects[j];
+                    final float lineK = (float) linesVisibilityState[j] / ChartDrawData.VISIBILITY_STATE_ON;
+
+                    if (l == -1) {
+                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                            lineRects[i].left = xToPixel(inputData.XValues[i]);
+                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK / inputData.stackedSum[i] * 100f));
+                            lineRects[i].bottom = area.bottom;
+                        }
+                    } else {
+                        final RectF[] prevLineRects = linesRects[l];
+
+                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                            lineRects[i].left = prevLineRects[i].left;
+                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK / inputData.stackedSum[i] * 100f)) * scaleY;
+                            lineRects[i].bottom = prevLineRects[i].top;
+                        }
+                    }
+                    l = j;
+
+                    lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
+                    for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                        lineRects[i - 1].right = lineRects[i].left;
+                    }
+                    lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
                 }
 
                 break;

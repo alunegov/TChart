@@ -282,6 +282,7 @@ public class MainChartView extends AbsChartView {
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
         final boolean simpleStacked = simpleStacked();
+        final boolean percentageStacked = percentageStacked();
 
         int visibleLinesCount = drawData.getVisibleLinesCount();
         // с учётом суммы всех значений
@@ -303,7 +304,14 @@ public class MainChartView extends AbsChartView {
                     continue;
                 }
 
-                inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
+                final View view = inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, false);
+
+                if (percentageStacked) {
+                    final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
+                    percentTextView.setVisibility(VISIBLE);
+                }
+
+                cursorValuesLayout.addView(view);
             }
 
             // для суммы всех значений
@@ -326,6 +334,16 @@ public class MainChartView extends AbsChartView {
 
             updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]),
                     inputData.LinesColors[i], linesVisibilityState[i], recreate);
+
+            if (percentageStacked) {
+                final String s = String.format("%d%% ", Math.round(100f * inputData.LinesValues[i][cursorIndex] / inputData.stackedSum[cursorIndex]));
+
+                final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
+                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_ON) {
+                    percentTextView.setText(s);
+                }
+                percentTextView.setScaleY(linesVisibilityState[i] / 255f);
+            }
         }
         // сумма всех значений
         if (simpleStacked) {
@@ -348,11 +366,11 @@ public class MainChartView extends AbsChartView {
     }
 
     private boolean simpleStacked() {
-        return inputData.flags.get(ChartInputData.FLAG_STACKED) && !inputData.flags.get(ChartInputData.FLAG_PERCENTAGE);
+        return inputData.linesType == ChartInputData.LineType.BAR;
     }
 
     private boolean percentageStacked() {
-        return inputData.flags.get(ChartInputData.FLAG_PERCENTAGE);
+        return inputData.linesType == ChartInputData.LineType.AREA;
     }
 
     private void updateCursorPopupValueText(View view, @NotNull String name, @NotNull String value, int color,

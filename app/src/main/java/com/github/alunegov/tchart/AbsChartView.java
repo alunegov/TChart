@@ -52,8 +52,7 @@ public abstract class AbsChartView extends View {
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth, inputData.linesType == ChartInputData.LineType.LINE);
 
-        // TODO: убрать ChartInputData.LineType.AREA
-        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+        if (inputData.linesType == ChartInputData.LineType.BAR) {
             final int[] linesFadedColors = new int[inputData.LinesColors.length];
 
             final int barLinesMaskColor = ChartUtils.getThemedColor(getContext(), R.attr.tchart_bars_mask_color, BAR_LINES_MASK_COLOR);
@@ -261,7 +260,7 @@ public abstract class AbsChartView extends View {
                     }
 
                     for (int i = xIndexRange[0]; i <= xIndexRange[1]; i++) {
-                        if (cursorIndex == NO_CURSOR || cursorIndex == i) {
+                        if (cursorIndex == NO_CURSOR || inputData.linesType == ChartInputData.LineType.AREA || cursorIndex == i) {
                             canvas.drawRect(rects[j][i], linesPaints[j]);
                         } else {
                             canvas.drawRect(rects[j][i], linesFadedPaints[j]);
