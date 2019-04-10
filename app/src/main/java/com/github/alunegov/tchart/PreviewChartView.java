@@ -11,9 +11,13 @@ import android.view.MotionEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class PreviewChartView extends AbsChartView {
-    private static final int FADED_COLOR = Color.parseColor("#C8EDF5FB");
+    // Scroll Background
+    // Light - E2EEF9, 60%  Dark - 304259, 60%
+    private static final int FADED_COLOR = Color.parseColor("#99E2EEF9");
 
-    private static final int FRAME_COLOR = Color.parseColor("#C8DBE7F0");
+    // Scroll Selector (overlays the value above)
+    // Light - 86A9C4, 50%  Dark - 6F899E, 50%
+    private static final int FRAME_COLOR = Color.parseColor("#7F86A9C4");
 
     private static final float LINE_WIDTH_DP = 1.0f;
 
@@ -357,9 +361,9 @@ public class PreviewChartView extends AbsChartView {
         final int h = getHeight();
 
         // left
-        canvas.drawRect(0, 0, zoneLeftBorder.left, h, fadedPaint);
+        canvas.drawRect(0, 0, zoneLeftBorder.right, h, fadedPaint);
         // right
-        canvas.drawRect(zoneRightBorder.right, 0, w, h, fadedPaint);
+        canvas.drawRect(zoneRightBorder.left, 0, w, h, fadedPaint);
     }
 
     private void drawFrame(@NotNull Canvas canvas) {

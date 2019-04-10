@@ -73,7 +73,7 @@
                     android:paddingRight="14dp"
                     android:paddingEnd="14dp"
                     android:text="@string/dummy"
-                    android:textColor="?attr/tchart_line_name_text_color"
+                    android:textColor="?attr/tchart_title_color"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     />
@@ -84,7 +84,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="end"
                     android:text=">"
-                    android:textColor="?attr/tchart_line_name_text_color"
+                    android:textColor="#D2D5D7"
                     android:textSize="14sp"
                     />
 

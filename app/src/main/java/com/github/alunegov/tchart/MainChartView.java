@@ -24,14 +24,17 @@ public class MainChartView extends AbsChartView {
 
     private static final float LINE_WIDTH_DP = 2.0f;
 
-    private static final int AXIS_TEXT_SIZE_SP = 12;
+    // X/Y Axis Text
+    //                                     Light             Dark
+    // Followers, Interactions, Growth   8E8E93        x/y - A3B1C2, 60%
+    // Messages, Apps                    252529, 50%    x - A3B1C2, 60% / y - ECF2F8, 50%
     private static final int AXIS_TEXT_COLOR = Color.parseColor("#8E8E93");
+    private static final int AXIS_TEXT_SIZE_SP = 12;
 
-    private static final int AXIS_LINE_COLOR = Color.parseColor("#E7E9EB");
+    // Grid Lines
+    // Light - 182D3B, 10%  Dark - FFFFFF, 10%
+    private static final int AXIS_LINE_COLOR = Color.parseColor("#19182D3B");
     private static final float AXIS_LINE_WIDTH_DP = 1.0f;
-
-    private static final int CURSOR_LINE_COLOR = Color.parseColor("#E7E9EB");
-    private static final float CURSOR_LINE_WIDTH_DP = 1.0f;
 
     private static final int CURSOR_POPUP_START_MARGIN_DP = 15;
 
@@ -59,14 +62,16 @@ public class MainChartView extends AbsChartView {
     // Преобразователь значения в текст для x-значений курсора
     private XAxisConverter cursorDateCnv;
 
+    private int barsXAxisTextColor, barsYAxisTextColor;
+
     // настройки отрисовки заполнения маркера курсора (чтобы получить заливку маркера цветом фона)
     private Paint linesMarkerFillPaint;
     // настройки отрисовки надписей осей
-    private Paint axisTextPaint;
-    // настройки отрисовки линий оси Y
-    private Paint yAxisLinePaint;
-    // настройки отрисовки вспомогательных линий (оси, курсор)
-    private Paint helperLinePaint;
+    private Paint xAxisTextPaint;
+    // в спец. случае это отдельные настройки (см. AXIS_TEXT_DARK_BARS_Y_COLOR)
+    private Paint yAxisTextPaint;
+    // настройки отрисовки линий оцифровки (и курсора)
+    private Paint axisLinePaint;
 
     public MainChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -84,7 +89,6 @@ public class MainChartView extends AbsChartView {
         cursorPopupStartMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_POPUP_START_MARGIN_DP, dm);
         final float axisTextSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, AXIS_TEXT_SIZE_SP, dm);
         final float axisLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, AXIS_LINE_WIDTH_DP, dm);
-        final float cursorLineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_LINE_WIDTH_DP, dm);
         markerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, MARKER_RADIUS_DP, dm);
         markerFillRadius = markerRadius - lineWidth / 2;
         xAxisTextVerticalMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, X_AXIS_TEXT_VERTICAL_MARGIN_DP, dm);
@@ -94,8 +98,9 @@ public class MainChartView extends AbsChartView {
         cursorDateCnv = new XAxisConverter(cursorDateFormatTemplate);
 
         final int axisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_text_color, AXIS_TEXT_COLOR);
+        barsXAxisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_bars_x_axis_text_color, AXIS_TEXT_COLOR);
+        barsYAxisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_bars_y_axis_text_color, AXIS_TEXT_COLOR);
         final int axisLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_line_color, AXIS_LINE_COLOR);
-        final int cursorLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_cursor_line_color, CURSOR_LINE_COLOR);
         final int backColor = ChartUtils.getThemedColor(context, R.attr.app_background_color, Color.WHITE);
 
         linesMarkerFillPaint = new Paint();
@@ -104,21 +109,22 @@ public class MainChartView extends AbsChartView {
         linesMarkerFillPaint.setColor(backColor);
         linesMarkerFillPaint.setStyle(Paint.Style.FILL);
 
-        axisTextPaint = new Paint();
-        axisTextPaint.setAntiAlias(true);
-        axisTextPaint.setColor(axisTextColor);
-        axisTextPaint.setStyle(Paint.Style.FILL);
-        axisTextPaint.setTextSize(axisTextSize);
+        xAxisTextPaint = new Paint();
+        xAxisTextPaint.setAntiAlias(true);
+        xAxisTextPaint.setColor(axisTextColor);
+        xAxisTextPaint.setStyle(Paint.Style.FILL);
+        xAxisTextPaint.setTextSize(axisTextSize);
 
-        yAxisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth, true);
+        yAxisTextPaint = new Paint(xAxisTextPaint);
 
-        helperLinePaint = ChartUtils.makeLinePaint(cursorLineColor, cursorLineWidth, true);
+        axisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth, true);
 
         updateGraphAreaHeight();
     }
 
     public void setAxisTextSize(float px) {
-        axisTextPaint.setTextSize(px);
+        xAxisTextPaint.setTextSize(px);
+        yAxisTextPaint.setTextSize(px);
 
         updateGraphAreaHeight();
 
@@ -130,6 +136,11 @@ public class MainChartView extends AbsChartView {
         super.setInputData(inputData);
 
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
+
+        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+            xAxisTextPaint.setColor(barsXAxisTextColor);
+            yAxisTextPaint.setColor(barsYAxisTextColor);
+        }
 
         //invalidate();
     }
@@ -203,7 +214,7 @@ public class MainChartView extends AbsChartView {
     // пересчёт высоты области для вывода сигналов (немного уменьшаем высоту, чтобы выводить в нижней части вида x-значения)
     // вызывается при изменении размеров вида, размера текста надписей оси
     private void updateGraphAreaHeight() {
-        Paint.FontMetrics fm = axisTextPaint.getFontMetrics();
+        Paint.FontMetrics fm = xAxisTextPaint.getFontMetrics();
 
         final float axisTextHeight = fm.descent - fm.ascent;
 
@@ -348,8 +359,10 @@ public class MainChartView extends AbsChartView {
         return inputData.flags.get(ChartInputData.FLAG_PERCENTAGE);
     }
 
-    private void updateCursorPopupValueText(@NotNull View view, @NotNull String name, @NotNull String value, int color,
+    private void updateCursorPopupValueText(View view, @NotNull String name, @NotNull String value, int color,
                                             int state, boolean refill) {
+        if (BuildConfig.DEBUG && (view == null)) throw new AssertionError();
+
         final float scale = state / 255f;
         //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
 
@@ -403,41 +416,41 @@ public class MainChartView extends AbsChartView {
                 return;
             }
 
-            drawXAxis(canvas);
-
             // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
             if (drawData.getVisibleLinesCount() == ChartDrawData.VISIBILITY_STATE_OFF) {
-                final float x = getWidth() / 2f - axisTextPaint.measureText(NO_DATA) / 2f;
+                final float x = getWidth() / 2f - xAxisTextPaint.measureText(NO_DATA) / 2f;
                 final float y = graphAreaHeight / 2f;
+                canvas.drawText(NO_DATA, x, y, xAxisTextPaint);
 
-                canvas.drawText(NO_DATA, x, y, axisTextPaint);
+                drawXAxis(canvas);
 
                 return;
             }
 
-            drawYAxis(canvas);
             drawLines(canvas);
+            drawXAxis(canvas);
+            drawYAxis(canvas);
             drawCursor(canvas);
 //        }
     }
 
     private void drawXAxis(@NotNull Canvas canvas) {
         final List<ChartDrawData.AxisMark> marks = drawData.getXAxisMarks();
-        if (BuildConfig.DEBUG && (marks == null)) throw new AssertionError();
+        if (marks == null) throw new AssertionError();
 
         final float y = getHeight() - xAxisTextVerticalMargin;
 
         for (ChartDrawData.AxisMark mark: marks) {
             // центруем текст относительно точки
-            final float x = mark.getPosition() - axisTextPaint.measureText(mark.getText()) / 2f;
+            final float x = mark.getPosition() - xAxisTextPaint.measureText(mark.getText()) / 2f;
 
-            canvas.drawText(mark.getText(), x, y, axisTextPaint);
+            canvas.drawText(mark.getText(), x, y, xAxisTextPaint);
         }
     }
 
     private void drawYAxis(@NotNull Canvas canvas) {
         final List<ChartDrawData.AxisMark> marks = drawData.getYAxisMarks();
-        if (BuildConfig.DEBUG && (marks == null)) throw new AssertionError();
+        if (marks == null) throw new AssertionError();
 
         boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
         final int w = getWidth();
@@ -445,15 +458,15 @@ public class MainChartView extends AbsChartView {
         for (ChartDrawData.AxisMark mark: marks) {
             final float y = mark.getPosition();
 
-            canvas.drawLine(0, y, w, y, yAxisLinePaint);
+            canvas.drawLine(0, y, w, y, axisLinePaint);
 
             float x;
             if (isLayoutRtl) {
-                x = w - axisTextPaint.measureText(mark.getText());
+                x = w - yAxisTextPaint.measureText(mark.getText());
             } else {
                 x = 0;
             }
-            canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, axisTextPaint);
+            canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, yAxisTextPaint);
         }
     }
 
@@ -464,7 +477,7 @@ public class MainChartView extends AbsChartView {
 
         final float cursorX = drawData.xToPixel(inputData.XValues[cursorIndex]);
 
-        canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, helperLinePaint);
+        canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, axisLinePaint);
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 

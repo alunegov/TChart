@@ -6,13 +6,12 @@
     <color name="colorAccent_Light">#FF4081</color>
     <color name="tchart_title_Light">#000000</color>
     <color name="tchart_axis_text_Light">#8E8E93</color>
-    <color name="tchart_axis_line_Light">#E7E9EB</color>
-    <color name="tchart_cursor_line_Light">#E7E9EB</color>
+    <color name="tchart_bars_x_axis_text_Light">#7F252529</color>
+    <color name="tchart_bars_y_axis_text_Light">#7F252529</color>
+    <color name="tchart_axis_line_Light">#19182D3B</color>
     <color name="tchart_cursor_line_name_text_color_Light">#000000</color>
-    <color name="tchart_preview_faded_Light">#C8EDF5FB</color>
-    <color name="tchart_preview_frame_Light">#C8DBE7F0</color>
-    <color name="tchart_line_name_text_Light">#222222</color>
-    <color name="tchart_line_name_divider_Light">#E0E0E0</color>
+    <color name="tchart_preview_faded_Light">#99E2EEF9</color>
+    <color name="tchart_preview_frame_Light">#7F86A9C4</color>
     <color name="app_background_Light">#FFFFFF</color>
 
     <!-- Dark theme !-->
@@ -20,14 +19,13 @@
     <color name="colorPrimaryDark_Dark">#1A242E</color>
     <color name="colorAccent_Dark">#FF4081</color>
     <color name="tchart_title_Dark">#FFFFFF</color>
-    <color name="tchart_axis_text_Dark">#87909A</color>
-    <color name="tchart_axis_line_Dark">#3A4451</color>
-    <color name="tchart_cursor_line_Dark">#3A4451</color>
+    <color name="tchart_axis_text_Dark">#99A3B1C2</color>
+    <color name="tchart_bars_x_axis_text_Dark">#99A3B1C2</color>
+    <color name="tchart_bars_y_axis_text_Dark">#7FECF2F8</color>
+    <color name="tchart_axis_line_Dark">#19FFFFFF</color>
     <color name="tchart_cursor_line_name_text_color_Dark">#FFFFFF</color>
-    <color name="tchart_preview_faded_Dark">#C82B3A4D</color>
-    <color name="tchart_preview_frame_Dark">#C84C6175</color>
-    <color name="tchart_line_name_text_Dark">#FAFAFA</color>
-    <color name="tchart_line_name_divider_Dark">#0E1722</color>
+    <color name="tchart_preview_faded_Dark">#99304259</color>
+    <color name="tchart_preview_frame_Dark">#7F6F899E</color>
     <color name="app_background_Dark">#242F3E</color>
 
 </resources>
