@@ -39,6 +39,7 @@ public class ChartInputDataMapper {
         final List<ChartInputData> res = new ArrayList<>();
 
         final String[] resources = resourceLoader.listResources("contest");
+
         for (String r: resources) {
             final String fileName = "contest" +  File.separator + r + File.separator + "overview.json";
             final String json = ChartUtils.readStreamToString(resourceLoader.openResource(fileName), CHART_DATA_CHARSET);
@@ -142,7 +143,7 @@ public class ChartInputDataMapper {
         //return 90;
     }
 
-    private static ChartInputData.LineType detectLinesType(@NotNull JSONObject jTypes) throws JSONException/*, IllegalArgumentException*/ {
+    private static ChartInputData.LineType detectLinesType(@NotNull JSONObject jTypes) throws JSONException {
         ChartInputData.LineType linesType = ChartInputData.LineType.LINE;
         final Iterator<String> linesTypesIter = jTypes.keys();
         while (linesTypesIter.hasNext()) {

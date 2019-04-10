@@ -16,8 +16,6 @@ import java.util.*;
 import org.jetbrains.annotations.NotNull;
 
 public class MainChartView extends AbsChartView {
-    private static final int NO_CURSOR = -1;
-
     private static final String NO_DATA = "NO VISIBLE LINES";
 
     private static final int AXIS_LINES_COUNT = 5;
@@ -50,8 +48,6 @@ public class MainChartView extends AbsChartView {
     private float yAxisTextVerticalMargin;
     private float xAxisTextVerticalMargin;
 
-    // индекс точки с курсором
-    private int cursorIndex = NO_CURSOR;
     // высота области графика (высота вида минус текст x-оси)
     private float graphAreaHeight;
 
@@ -475,9 +471,19 @@ public class MainChartView extends AbsChartView {
             return;
         }
 
+        // в BAR не нужны ни линия, ни отметки точек
+        if (inputData.linesType == ChartInputData.LineType.BAR) {
+            return;
+        }
+
         final float cursorX = drawData.xToPixel(inputData.XValues[cursorIndex]);
 
         canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, axisLinePaint);
+
+        // в AREA нужна только линия, без отметок точек
+        if (inputData.linesType == ChartInputData.LineType.AREA) {
+            return;
+        }
 
         final int[] linesVisibilityState = drawData.getLinesVisibilityState();
 

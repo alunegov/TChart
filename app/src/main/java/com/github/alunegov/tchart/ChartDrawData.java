@@ -400,7 +400,7 @@ public class ChartDrawData {
                 break;
 
             case BAR:
-            case AREA:
+            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
                 final float rectWidth = area.width() / linePtsCount;
                 //Log.d("CDD", String.format("linePtsCount = %d, rectWidth = %f", linePtsCount, rectWidth));
 

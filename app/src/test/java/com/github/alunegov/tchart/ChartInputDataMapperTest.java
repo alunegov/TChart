@@ -42,7 +42,7 @@ public class ChartInputDataMapperTest {
         assertEquals(FAKE_COLOR, c.LinesColors[0]);
         assertEquals(FAKE_COLOR, c.LinesColors[1]);
 
-        StringBuilder sb = new StringBuilder();
+/*        StringBuilder sb = new StringBuilder();
         //sb.append("var points = [");
         c = l.get(4);
         for (int i = 0; i < c.XValues.length; i++) {
@@ -54,6 +54,6 @@ public class ChartInputDataMapperTest {
 
         PrintWriter out = new PrintWriter("1.txt");
         out.println(sb.toString());
-        out.close();
+        out.close();*/
   }
 }

@@ -93,7 +93,7 @@ public class ChartInputData {
                 break;
 
             case BAR:
-            case AREA:
+            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
                 updateStackedSum(linesVisibilityState);
 
                 for (int i = l; i <= r; i++) {

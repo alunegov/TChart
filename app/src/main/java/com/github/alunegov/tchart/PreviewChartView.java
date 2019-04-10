@@ -21,13 +21,14 @@ public class PreviewChartView extends AbsChartView {
 
     private static final float LINE_WIDTH_DP = 1.0f;
 
-    private static final float BORDER_HORIZONTAL_WIDTH_DP = 10f;
-    private static final float BORDER_VERTICAL_HEIGHT_DP = 1.5f;
+    private static final float BORDER_VERTICAL_WIDTH_DP = 10f;
+    private static final float BORDER_HORIZONTAL_HEIGHT_DP = 1.5f;
 
     private static final int TOUCH_SLOP1_DP = 40;
     private static final float TOUCH_SLOP2_PERCENT = 0.1f;
 
-    private float borderHorizontalWidth, borderVerticalHeight;
+    private float borderVerticalWidth;
+    private int borderHorizontalHeight;
     private float touchSlop1;
 
     private OnChangeListener onChangeListener;
@@ -53,8 +54,12 @@ public class PreviewChartView extends AbsChartView {
         final DisplayMetrics dm = context.getResources().getDisplayMetrics();
 
         lineWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, LINE_WIDTH_DP, dm);
-        borderHorizontalWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_HORIZONTAL_WIDTH_DP, dm);
-        borderVerticalHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_VERTICAL_HEIGHT_DP, dm);
+        borderVerticalWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_VERTICAL_WIDTH_DP, dm);
+        final float tmpHeight = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_HORIZONTAL_HEIGHT_DP, dm);
+        borderHorizontalHeight = Math.round(tmpHeight);
+        if (borderHorizontalHeight <= 0) {
+            borderHorizontalHeight = 1;
+        }
         touchSlop1 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP1_DP, dm);
 
         final int fadedColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_faded_color, FADED_COLOR);
@@ -65,10 +70,12 @@ public class PreviewChartView extends AbsChartView {
         zoneRightBorder = new RectF();
 
         fadedPaint = new Paint();
+        fadedPaint.setAntiAlias(true);
         fadedPaint.setColor(fadedColor);
         fadedPaint.setStyle(Paint.Style.FILL);
 
         framePaint = new Paint();
+        framePaint.setAntiAlias(true);
         framePaint.setColor(frameColor);
         framePaint.setStyle(Paint.Style.FILL);
     }
@@ -154,7 +161,7 @@ public class PreviewChartView extends AbsChartView {
         }
 
         if (BuildConfig.DEBUG && ((getWidth() != w) || (getHeight() != h))) throw new AssertionError();
-        drawData.setArea(new RectF(0, 0, w, h));
+        drawData.setArea(new RectF(0, borderHorizontalHeight, w, h - borderHorizontalHeight));
 
         updateZoneLeftBorder(true);
         updateZoneRightBorder(true);
@@ -239,8 +246,8 @@ public class PreviewChartView extends AbsChartView {
                             newX = zoneLeftBorder.left + moveDelta;
                             if (newX < 0) {
                                 newX = 0;
-                            } else if ((newX + borderHorizontalWidth) > zoneRightBorder.left) {
-                                newX = zoneRightBorder.left - borderHorizontalWidth;
+                            } else if ((newX + borderVerticalWidth) > zoneRightBorder.left) {
+                                newX = zoneRightBorder.left - borderVerticalWidth;
                             }
 
                             zoneLeftValue = drawData.pixelToX(newX);
@@ -251,8 +258,8 @@ public class PreviewChartView extends AbsChartView {
 
                         case RIGHT:
                             newX = zoneRightBorder.right + moveDelta;
-                            if ((newX - borderHorizontalWidth) < zoneLeftBorder.right) {
-                                newX = zoneLeftBorder.right + borderHorizontalWidth;
+                            if ((newX - borderVerticalWidth) < zoneLeftBorder.right) {
+                                newX = zoneLeftBorder.right + borderVerticalWidth;
                             } else if (newX > getWidth()) {
                                 newX = getWidth();
                             }
@@ -305,7 +312,7 @@ public class PreviewChartView extends AbsChartView {
 
     private void updateZoneLeftBorder(boolean doVertical) {
         zoneLeftBorder.left = drawData.xToPixel(zoneLeftValue);
-        zoneLeftBorder.right = zoneLeftBorder.left + borderHorizontalWidth;
+        zoneLeftBorder.right = zoneLeftBorder.left + borderVerticalWidth;
         if (doVertical) {
             zoneLeftBorder.top = 0;
             zoneLeftBorder.bottom = getHeight();
@@ -314,7 +321,7 @@ public class PreviewChartView extends AbsChartView {
 
     private void updateZoneRightBorder(boolean doVertical) {
         zoneRightBorder.right = drawData.xToPixel(zoneRightValue);
-        zoneRightBorder.left = zoneRightBorder.right - borderHorizontalWidth;
+        zoneRightBorder.left = zoneRightBorder.right - borderVerticalWidth;
         if (doVertical) {
             zoneRightBorder.top = 0;
             zoneRightBorder.bottom = getHeight();
@@ -322,7 +329,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private boolean updateCachedLines() {
-        Log.d("PCV", "updateCachedLines");
+        //Log.d("PCV", "updateCachedLines");
 
         if (getWidth() == 0 || getHeight() == 0) {
             cachedLines = null;
@@ -356,27 +363,39 @@ public class PreviewChartView extends AbsChartView {
 //        }
     }
 
+    private final @NotNull RectF tmpRect = new RectF();
+    private static final float r = 10;
+
     private void drawLinesFade(@NotNull Canvas canvas) {
         final int w = getWidth();
-        final int h = getHeight();
+        final int h = getHeight() - borderHorizontalHeight;
 
         // left
-        canvas.drawRect(0, 0, zoneLeftBorder.right, h, fadedPaint);
+        tmpRect.set(0, borderHorizontalHeight, zoneLeftBorder.right, h);
+        canvas.drawRoundRect(tmpRect, r, r, fadedPaint);
+        //canvas.drawRect(zoneLeftBorder, fadedPaint);
         // right
-        canvas.drawRect(zoneRightBorder.left, 0, w, h, fadedPaint);
+        tmpRect.set(zoneRightBorder.left, borderHorizontalHeight, w, h);
+        canvas.drawRoundRect(tmpRect, r, r, fadedPaint);
+        //canvas.drawRect(zoneRightBorder, fadedPaint);
     }
 
     private void drawFrame(@NotNull Canvas canvas) {
         final int h = getHeight();
 
         // left, vert
-        canvas.drawRect(zoneLeftBorder, framePaint);
+        canvas.drawRoundRect(zoneLeftBorder, r, r, framePaint);
         // right, vert
-        canvas.drawRect(zoneRightBorder, framePaint);
+        canvas.drawRoundRect(zoneRightBorder, r, r, framePaint);
         // top, hor
-        canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, borderVerticalHeight, framePaint);
+        canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, borderHorizontalHeight, framePaint);
         // bottom, hor
-        canvas.drawRect(zoneLeftBorder.right, h - borderVerticalHeight, zoneRightBorder.left, h, framePaint);
+        canvas.drawRect(zoneLeftBorder.right, h - borderHorizontalHeight, zoneRightBorder.left, h, framePaint);
+
+//        tmpRect.set(zoneLeftBorder.centerX() - 4, zoneLeftBorder.centerY() - 10, zoneLeftBorder.centerX() + 4, zoneLeftBorder.centerY() + 10);
+        // left
+//        canvas.drawRoundRect(tmpRect, 4, 4, framePaint);
+        // right
     }
 
     public interface OnChangeListener {

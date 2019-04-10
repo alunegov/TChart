@@ -12,6 +12,12 @@ import java.util.concurrent.Executors;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class AbsChartView extends View {
+    protected static final int NO_CURSOR = -1;
+
+    // Grid Lines
+    // Lighten Mask - FFFFFF, 50%  Darken Mask - 242F3E, 50%
+    private static final int BAR_LINES_MASK_COLOR = Color.parseColor("#7FFFFFFF");
+
     // Cache the touch slop from the context that created the view.
     protected int mTouchSlop;
 
@@ -21,8 +27,12 @@ public abstract class AbsChartView extends View {
 
     protected float lineWidth;
 
+    // индекс точки с курсором
+    protected int cursorIndex = NO_CURSOR;
+
     // настройки отрисовки линий
     protected Paint[] linesPaints;
+    protected Paint[] linesFadedPaints;
 
     protected boolean horizontalMovement = false;
 
@@ -41,6 +51,26 @@ public abstract class AbsChartView extends View {
         drawData.setXRange(inputData.XValues[0], inputData.XValues[inputData.XValues.length - 1], true);
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth, inputData.linesType == ChartInputData.LineType.LINE);
+
+        // TODO: убрать ChartInputData.LineType.AREA
+        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+            final int[] linesFadedColors = new int[inputData.LinesColors.length];
+
+            final int barLinesMaskColor = ChartUtils.getThemedColor(getContext(), R.attr.tchart_bars_mask_color, BAR_LINES_MASK_COLOR);
+
+            // https://www.wikiwand.com/en/Alpha_compositing#Alpha_blending
+            final float alpha = Color.alpha(barLinesMaskColor) / 255f;
+
+            for (int i = 0; i < inputData.LinesColors.length; i++) {
+                final int r = (int) (alpha * Color.red(barLinesMaskColor) + Color.red(inputData.LinesColors[i]) * (1 - alpha));
+                final int g = (int) (alpha * Color.green(barLinesMaskColor) + Color.green(inputData.LinesColors[i]) * (1 - alpha));
+                final int b = (int) (alpha * Color.blue(barLinesMaskColor) + Color.blue(inputData.LinesColors[i]) * (1 - alpha));
+
+                linesFadedColors[i] = Color.rgb(r, g, b);
+            }
+
+            linesFadedPaints = ChartUtils.makeLinesPaints(linesFadedColors, lineWidth, false);
+        }
 
         tmpLinesVisibilityState = new int[inputData.LinesValues.length];
     }
@@ -221,17 +251,21 @@ public abstract class AbsChartView extends View {
                 break;
 
             case BAR:
-            case AREA:
+            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
                 final RectF[][] rects = drawData.getLinesRects();
                 if (BuildConfig.DEBUG && (rects.length != linesPaints.length)) throw new AssertionError();
 
-                for (int i = 0; i < rects.length; i++) {
-                    if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                for (int j = 0; j < rects.length; j++) {
+                    if (linesVisibilityState[j] == ChartDrawData.VISIBILITY_STATE_OFF) {
                         continue;
                     }
 
-                    for (int j = xIndexRange[0]; j <= xIndexRange[1]; j++) {
-                        canvas.drawRect(rects[i][j], linesPaints[i]);
+                    for (int i = xIndexRange[0]; i <= xIndexRange[1]; i++) {
+                        if (cursorIndex == NO_CURSOR || cursorIndex == i) {
+                            canvas.drawRect(rects[j][i], linesPaints[j]);
+                        } else {
+                            canvas.drawRect(rects[j][i], linesFadedPaints[j]);
+                        }
                     }
                 }
 
