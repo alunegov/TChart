@@ -1,6 +1,7 @@
 package com.github.alunegov.tchart;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -22,6 +23,7 @@ public class LineNameListView extends FlexboxLayout {
 
     private float textSize;
 
+    private LineName[] mLineNames;
     private @Nullable OnChangeListener onChangeListener;
 
     public LineNameListView(Context context, AttributeSet attrs) {
@@ -49,6 +51,8 @@ public class LineNameListView extends FlexboxLayout {
     }
 
     public void setLineNames(@NotNull LineName[] lineNames) {
+        mLineNames = lineNames;
+
         final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (inflater == null) throw new AssertionError();
 
@@ -78,12 +82,14 @@ public class LineNameListView extends FlexboxLayout {
     private final CompoundButton.OnCheckedChangeListener lineOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            final int lineIndex = (int) buttonView.getTag();
+
+            buttonView.setTextColor(isChecked ? Color.WHITE : mLineNames[lineIndex].getColor());
+
             // avoid per-line disabling then disabling all via long tap
             if (mBroadcasting) {
                 return;
             }
-
-            final int lineIndex = (int) buttonView.getTag();
 
             if (onChangeListener != null) {
                 onChangeListener.onCheckedChange(lineIndex, isChecked);

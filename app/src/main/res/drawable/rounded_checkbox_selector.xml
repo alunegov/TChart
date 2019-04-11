@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+
     <item android:state_checked="true">
         <layer-list>
             <item>
@@ -15,10 +16,12 @@
                         android:bottom="6dp" />
                 </shape>
             </item>
+
             <item
-                android:drawable="@drawable/icons8_checkmark_24" />
+                android:drawable="@drawable/round_done_white_24" />
         </layer-list>
     </item>
+
     <item android:state_checked="false">
         <layer-list>
             <item>
@@ -36,4 +39,5 @@
             </item>
         </layer-list>
     </item>
+
 </selector>
