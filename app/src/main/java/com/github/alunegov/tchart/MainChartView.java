@@ -128,8 +128,8 @@ public class MainChartView extends AbsChartView {
     }
 
     @Override
-    public void setInputData(@NotNull ChartInputData inputData) {
-        super.setInputData(inputData);
+    public void setInputData(@NotNull ChartInputData inputData, @NotNull ChartInputDataStats inputDataStats) {
+        super.setInputData(inputData, inputDataStats);
 
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
 
@@ -280,11 +280,11 @@ public class MainChartView extends AbsChartView {
         if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
         if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
-        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
         final boolean simpleStacked = simpleStacked();
         final boolean percentageStacked = percentageStacked();
 
-        int visibleLinesCount = drawData.getVisibleLinesCount();
+        int visibleLinesCount = inputDataStats.getVisibleLinesCount();
         // с учётом суммы всех значений
         if (simpleStacked) {
             visibleLinesCount++;
@@ -300,7 +300,7 @@ public class MainChartView extends AbsChartView {
             cursorValuesLayout.removeAllViews();
 
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                     continue;
                 }
 
@@ -326,7 +326,7 @@ public class MainChartView extends AbsChartView {
         // значения линий
         int k = 0;
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+            if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
@@ -336,10 +336,13 @@ public class MainChartView extends AbsChartView {
                     inputData.LinesColors[i], linesVisibilityState[i], recreate);
 
             if (percentageStacked) {
-                final String s = String.format("%d%% ", Math.round(100f * inputData.LinesValues[i][cursorIndex] / inputData.stackedSum[cursorIndex]));
+                final int[] stackedSum = inputDataStats.getStackedSum();
+                assert stackedSum != null;
+
+                final String s = String.format("%d%% ", Math.round(100f * inputData.LinesValues[i][cursorIndex] / stackedSum[cursorIndex]));
 
                 final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
-                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_ON) {
+                if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_ON) {
                     percentTextView.setText(s);
                 }
                 percentTextView.setScaleY(linesVisibilityState[i] / 255f);
@@ -351,7 +354,7 @@ public class MainChartView extends AbsChartView {
 
             int sum = 0;
             for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+                if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                     continue;
                 }
 
@@ -361,7 +364,7 @@ public class MainChartView extends AbsChartView {
             final View view = cursorValuesLayout.getChildAt(k);
 
             // TODO: theme color
-            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK, ChartDrawData.VISIBILITY_STATE_ON, recreate);
+            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK, ChartInputDataStats.VISIBILITY_STATE_ON, recreate);
         }
     }
 
@@ -431,7 +434,7 @@ public class MainChartView extends AbsChartView {
             }
 
             // если нет видимых сигналов, оставляем xAxis и выводим текст NO_DATA по центру области графика
-            if (drawData.getVisibleLinesCount() == ChartDrawData.VISIBILITY_STATE_OFF) {
+            if (inputDataStats.getVisibleLinesCount() == 0) {
                 final float x = getWidth() / 2f - xAxisTextPaint.measureText(NO_DATA) / 2f;
                 final float y = graphAreaHeight / 2f;
                 canvas.drawText(NO_DATA, x, y, xAxisTextPaint);
@@ -503,10 +506,10 @@ public class MainChartView extends AbsChartView {
             return;
         }
 
-        final int[] linesVisibilityState = drawData.getLinesVisibilityState();
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
+            if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 

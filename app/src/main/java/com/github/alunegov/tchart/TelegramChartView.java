@@ -39,6 +39,8 @@ public class TelegramChartView extends LinearLayout {
     private int lineVisibilityAnimation_lineIndex;
     private boolean lineVisibilityAnimation_exceptLine;
 
+    private ChartInputDataStats inputDataStats;
+
     private final Handler h = new Handler();
 
     private int ymin_main1, ymax_main1, ymin_main2, ymax_main2, ymin_main3, ymax_main3;
@@ -203,11 +205,11 @@ public class TelegramChartView extends LinearLayout {
 
         int startLineVisibilityState;
         if (exceptLine) {
-            startLineVisibilityState = mainChartView.getLineVisibilityState(lineIndex);
+            startLineVisibilityState = inputDataStats.getLineVisibilityState(lineIndex);
         } else {
-            startLineVisibilityState = isChecked ? ChartDrawData.VISIBILITY_STATE_OFF : ChartDrawData.VISIBILITY_STATE_ON;
+            startLineVisibilityState = isChecked ? ChartInputDataStats.VISIBILITY_STATE_OFF : ChartInputDataStats.VISIBILITY_STATE_ON;
         }
-        final int stopLineVisibilityState = isChecked ? ChartDrawData.VISIBILITY_STATE_ON : ChartDrawData.VISIBILITY_STATE_OFF;
+        final int stopLineVisibilityState = isChecked ? ChartInputDataStats.VISIBILITY_STATE_ON : ChartInputDataStats.VISIBILITY_STATE_OFF;
 
         mainChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, startYRange, stopYRange);
         final PropertyValuesHolder ymin_main = PropertyValuesHolder.ofInt("ymin_main", startYRange[0], stopYRange[0]);
@@ -221,7 +223,7 @@ public class TelegramChartView extends LinearLayout {
 
         // TODO: переход из/в состояние без графиков
         // TODO: если нет изменения по Y, не нужно вызывать setYRange
-        //if ((startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])) {
+        //   (startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])
         lineVisibilityAnimation_lineIndex = lineIndex;
         lineVisibilityAnimation_exceptLine = exceptLine;
 
@@ -341,6 +343,9 @@ public class TelegramChartView extends LinearLayout {
             // НО при обновлении ChartDrawData.updateLineVisibility пересчитываются y (updateYRange), а нам это не
             // нужно - мы сами анимируем изменение.
 
+            inputDataStats.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                    lineVisibilityState);
+
             mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
                     lineVisibilityState, false, false);
             previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
@@ -370,13 +375,7 @@ public class TelegramChartView extends LinearLayout {
     }
 
     public void setInputData(@NotNull ChartInputData inputData) {
-/*        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
-            final @NotNull int[] linesVisibilityState = new int[inputData.LinesValues.length];
-            for (int i = 0; i < linesVisibilityState.length; i++) {
-                linesVisibilityState[i] = ChartDrawData.VISIBILITY_STATE_ON;
-            }
-            inputData.updateStackedSum(linesVisibilityState);
-        }*/
+        inputDataStats = new ChartInputDataStats(inputData);
 
         final LineName[] linesNames = new LineName[inputData.LinesNames.length];
         for (int i = 0; i < inputData.LinesNames.length; i++) {
@@ -385,8 +384,8 @@ public class TelegramChartView extends LinearLayout {
 
 //        optInputData(inputData);
 
-        mainChartView.setInputData(inputData);
-        previewChartView.setInputData(inputData);
+        mainChartView.setInputData(inputData, inputDataStats);
+        previewChartView.setInputData(inputData, inputDataStats);
         lineNamesView.setLineNames(linesNames);
 
         final float[] zone = new float[2];

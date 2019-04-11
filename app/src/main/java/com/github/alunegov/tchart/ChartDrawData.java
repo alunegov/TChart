@@ -12,11 +12,9 @@ import org.jetbrains.annotations.Nullable;
 
 // Данные графика, используемые при отрисовке
 public class ChartDrawData {
-    public static final int VISIBILITY_STATE_ON = 255;
-    public static final int VISIBILITY_STATE_OFF = 0;
-
     // исходные данные графика
     private ChartInputData inputData;
+    private ChartInputDataStats inputDataStats;
     // Кол-во линий оцифровки осей
     private int axisLineCount;
     // Преобразователь значения в текст для оцифровки оси X
@@ -33,10 +31,6 @@ public class ChartDrawData {
     private int xLeftIndex, xRightIndex;
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
-    // состояние видимости линии (0 - не видима, 255 - видима)
-    private int[] linesVisibilityState;
-    // количество видимых линий (с не нулевым состоянием)
-    private int visibleLinesCount;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
     private int yMin, yMax;
     // коэффициент пересчета значений в пиксели
@@ -52,18 +46,13 @@ public class ChartDrawData {
 
     private RectF[][] linesRects;
 
-    public ChartDrawData(@NotNull ChartInputData inputData) {
+    public ChartDrawData(@NotNull ChartInputData inputData, @NotNull ChartInputDataStats inputDataStats) {
         this.inputData = inputData;
+        this.inputDataStats = inputDataStats;
 
         if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
             yMinMode = YMinMode.ZERO;
         }
-
-        linesVisibilityState = new int[inputData.LinesValues.length];
-        for (int i = 0; i < linesVisibilityState.length; i++) {
-            linesVisibilityState[i] = VISIBILITY_STATE_ON;
-        }
-        visibleLinesCount = inputData.LinesValues.length;
 
         linesPaths = new Path[inputData.LinesValues.length];
         for (int i = 0; i < linesPaths.length; i++) {
@@ -99,7 +88,7 @@ public class ChartDrawData {
         this.areaSet = true;
 
         //updateYRange();
-        updateScales();
+        updateScalesAndMatrix();
         updateLinesAndAxis();
     }
 
@@ -139,17 +128,9 @@ public class ChartDrawData {
 
         if (doUpdate) {
             updateYRange();
-            updateScales();
+            updateScalesAndMatrix();
             updateLinesAndAxis();
         }
-    }
-
-    public @NotNull int[] getLinesVisibilityState() {
-        return linesVisibilityState;
-    }
-
-    public int getVisibleLinesCount() {
-        return visibleLinesCount;
     }
 
     public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
@@ -157,23 +138,9 @@ public class ChartDrawData {
             return;
         }
 
-        if (exceptLine) {
-            final int otherLinesState = ChartDrawData.VISIBILITY_STATE_ON - state;
-
-            for (int i = 0; i < linesVisibilityState.length; i++) {
-                if (linesVisibilityState[i] != ChartDrawData.VISIBILITY_STATE_OFF) {
-                    linesVisibilityState[i] = otherLinesState;
-                }
-            }
-        }
-        linesVisibilityState[lineIndex] = state;
-
-        // не смотрим на doUpdate, при вызове перестраиваются значения плашки
-        updateVisibleLinesCount();
-
         if (doUpdate) {
             updateYRange();
-            updateScales();
+            updateScalesAndMatrix();
             updateLinesAndAxis();
         }
     }
@@ -189,14 +156,14 @@ public class ChartDrawData {
         this.yMin = yMin;
         this.yMax = yMax;
 
-        updateScales();
+        updateScalesAndMatrix();
         updateLinesAndAxis();
     }
 
     public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
         if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
 
-        final @NotNull int[] yMinMax = inputData.findYMinMax(xLeftIndex, xRightIndex, linesVisibilityState);
+        final @NotNull int[] yMinMax = inputDataStats.findYMinMax(xLeftIndex, xRightIndex, linesVisibilityState);
 
         int yMinAt;
         switch (yMinMode) {
@@ -263,15 +230,20 @@ public class ChartDrawData {
     private final @NotNull int[] yRange = new int[2];
 
     private void updateYRange() {
-        calcYRangeAt(xLeftIndex, xRightIndex, linesVisibilityState, yRange);
+        calcYRangeAt(xLeftIndex, xRightIndex, inputDataStats.getLinesVisibilityState(), yRange);
 
         yMin = yRange[0];
         yMax = yRange[1];
     }
 
-    private void updateScales() {
+    private void updateScalesAndMatrix() {
         scaleX = area.width() / Math.abs(xRightValue - xLeftValue);
         scaleY = area.height() / (float) Math.abs(yMax - yMin);
+
+        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+        matrix.setScale(scaleX, -scaleY);
+        matrix.postTranslate(xToPixelHelper, yToPixelHelper);
     }
 
     boolean b1 = false;
@@ -284,10 +256,6 @@ public class ChartDrawData {
         if (!xLeftSet || !xRightSet) {
             return;
         }
-
-        //updateVisibleLinesCount();
-
-        updateMatrix();
 
         //if (!b1) {
             //b1 = true;
@@ -302,24 +270,9 @@ public class ChartDrawData {
         //}
     }
 
-    private void updateVisibleLinesCount() {
-        visibleLinesCount = 0;
-        for (int j = 0; j < inputData.LinesValues.length; j++) {
-            if (linesVisibilityState[j] != VISIBILITY_STATE_OFF) {
-                visibleLinesCount++;
-            }
-        }
-    }
-
-    private void updateMatrix() {
-        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
-        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
-
-        matrix.setScale(scaleX, -scaleY);
-        matrix.postTranslate(xToPixelHelper, yToPixelHelper);
-    }
-
     private void updateLines() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
 /*        //
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
@@ -382,7 +335,7 @@ public class ChartDrawData {
                 linePtsCount = (linePtsCount - 1) << 1;
 
                 for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                         continue;
                     }
 
@@ -410,12 +363,12 @@ public class ChartDrawData {
             case BAR:
                 l = -1;
                 for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                         continue;
                     }
 
                     final RectF[] lineRects = linesRects[j];
-                    final float lineK = (float) linesVisibilityState[j] / ChartDrawData.VISIBILITY_STATE_ON;
+                    final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
                     
                     if (l == -1) {
                         for (int i = xLeftIndex; i <= xRightIndex; i++) {
@@ -444,21 +397,22 @@ public class ChartDrawData {
                 break;
 
             case AREA:
-                inputData.updateStackedSum(linesVisibilityState);
+                final int[] stackedSum = inputDataStats.getStackedSum();
+                assert stackedSum != null;
 
                 l = -1;
                 for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                         continue;
                     }
 
                     final RectF[] lineRects = linesRects[j];
-                    final float lineK = (float) linesVisibilityState[j] / ChartDrawData.VISIBILITY_STATE_ON;
+                    final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
 
                     if (l == -1) {
                         for (int i = xLeftIndex; i <= xRightIndex; i++) {
                             lineRects[i].left = xToPixel(inputData.XValues[i]);
-                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK / inputData.stackedSum[i] * 100f));
+                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f));
                             lineRects[i].bottom = area.bottom;
                         }
                     } else {
@@ -466,7 +420,7 @@ public class ChartDrawData {
 
                         for (int i = xLeftIndex; i <= xRightIndex; i++) {
                             lineRects[i].left = prevLineRects[i].left;
-                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK / inputData.stackedSum[i] * 100f)) * scaleY;
+                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f)) * scaleY;
                             lineRects[i].bottom = prevLineRects[i].top;
                         }
                     }

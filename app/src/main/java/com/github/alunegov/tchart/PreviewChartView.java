@@ -85,8 +85,8 @@ public class PreviewChartView extends AbsChartView {
     }
 
     @Override
-    public void setInputData(@NotNull ChartInputData inputData) {
-        super.setInputData(inputData);
+    public void setInputData(@NotNull ChartInputData inputData, @NotNull ChartInputDataStats inputDataStats) {
+        super.setInputData(inputData, inputDataStats);
 
         zoneLeftValue = inputData.XValues[0];//inputData.XValues[inputData.XValues.length * 4 / 6];  // TODO: starting zoneLeft?
         zoneRightValue = inputData.XValues[inputData.XValues.length - 1];
@@ -101,19 +101,19 @@ public class PreviewChartView extends AbsChartView {
         //invalidate();
     }
 
-    @Override
+/*    @Override
     public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate, boolean doInvalidate) {
         super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate, false);
 
         // TODO: обновляем кэш-картинку в конце анимации (0 или 255 в зависимости от направления)
         /*if (state == ChartDrawData.VISIBILITY_STATE_OFF || state == ChartDrawData.VISIBILITY_STATE_ON) {
             useCachedLines(false);
-        }*/
+        }*//*
 
         if (doInvalidate) {
             invalidate();
         }
-    }
+    }*/
 
     @Override
     public void setYRange(int yMin, int yMax, boolean doUpdateAndInvalidate) {
