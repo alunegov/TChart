@@ -1,10 +1,12 @@
 <resources>
-    <!-- Base application theme. -->
+
+    <!-- Light theme !-->
     <style name="AppTheme.Light" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary_Light</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark_Light</item>
         <item name="colorAccent">@color/colorAccent_Light</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark_Light</item>
+        <item name="android:windowLightStatusBar">true</item>
         <item name="tchart_title_color">@color/tchart_title_Light</item>
         <item name="tchart_axis_text_color">@color/tchart_axis_text_Light</item>
         <item name="tchart_bars_x_axis_text_color">@color/tchart_bars_x_axis_text_Light</item>
@@ -17,10 +19,11 @@
         <item name="app_background_color">@color/app_background_Light</item>
         <item name="round_rect_shape">@drawable/round_rect_shape_light</item>
         <item name="mode_icon">@mipmap/mode_icon_2_light</item>
+        <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
     </style>
 
+    <!-- Dark theme !-->
     <style name="AppTheme.Dark" parent="Theme.AppCompat.NoActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary_Dark</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark_Dark</item>
         <item name="colorAccent">@color/colorAccent_Dark</item>
@@ -36,8 +39,15 @@
         <item name="app_background_color">@color/app_background_Dark</item>
         <item name="round_rect_shape">@drawable/round_rect_shape_dark</item>
         <item name="mode_icon">@mipmap/mode_icon_2_dark</item>
+        <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
     </style>
 
+    <style name="WindowAnimationTransition">
+        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
+    </style>
+
+    <!-- android.support.v7.widget.Toolbar theme !-->
     <style name="Toolbar">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">?attr/actionBarSize</item>

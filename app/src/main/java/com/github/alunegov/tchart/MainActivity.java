@@ -26,9 +26,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         isLight = getPreferences(MODE_PRIVATE)
                 .getBoolean(IS_LIGHT_PREF, isLight);
-        if (!isLight) {
-            setTheme(R.style.AppTheme_Dark);
-        }
+        setTheme(isLight ? R.style.AppTheme_Light : R.style.AppTheme_Dark);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);

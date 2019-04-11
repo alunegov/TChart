@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <!-- Light theme !-->
     <color name="colorPrimary_Light">#000000</color>
-    <color name="colorPrimaryDark_Light">#426382</color>
+    <color name="colorPrimaryDark_Light">#FFFFFF</color>
     <color name="colorAccent_Light">#FF4081</color>
     <color name="tchart_title_Light">#000000</color>
     <color name="tchart_axis_text_Light">#8E8E93</color>
@@ -17,7 +18,7 @@
 
     <!-- Dark theme !-->
     <color name="colorPrimary_Dark">#212D3B</color>
-    <color name="colorPrimaryDark_Dark">#1A242E</color>
+    <color name="colorPrimaryDark_Dark">#242F3E</color>
     <color name="colorAccent_Dark">#FF4081</color>
     <color name="tchart_title_Dark">#FFFFFF</color>
     <color name="tchart_axis_text_Dark">#99A3B1C2</color>
