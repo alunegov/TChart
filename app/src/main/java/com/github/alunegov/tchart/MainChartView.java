@@ -217,7 +217,7 @@ public class MainChartView extends AbsChartView {
         graphAreaHeight = getHeight() - 2 * xAxisTextVerticalMargin - axisTextHeight;
 
         if (drawData != null) {
-            drawData.setArea(new RectF(0, 0, getWidth(), graphAreaHeight));
+            drawData.setArea(new RectF(getPaddingLeft(), 0, getWidth() - getPaddingRight(), graphAreaHeight));
         }
     }
 
@@ -470,18 +470,19 @@ public class MainChartView extends AbsChartView {
         if (marks == null) throw new AssertionError();
 
         boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
-        final int w = getWidth();
+        final int startX = getPaddingLeft();
+        final int w = getWidth() - getPaddingRight();
 
         for (ChartDrawData.AxisMark mark: marks) {
             final float y = mark.getPosition();
 
-            canvas.drawLine(0, y, w, y, axisLinePaint);
+            canvas.drawLine(startX, y, w, y, axisLinePaint);
 
             float x;
             if (isLayoutRtl) {
                 x = w - yAxisTextPaint.measureText(mark.getText());
             } else {
-                x = 0;
+                x = startX;
             }
             canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, yAxisTextPaint);
         }

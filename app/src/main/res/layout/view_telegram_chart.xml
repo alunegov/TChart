@@ -10,13 +10,16 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/tchart_vertical_margin"
+        android:layout_marginBottom="@dimen/tchart_title_bottom_margin"
+        android:layout_marginLeft="@dimen/tchart_horizontal_margin"
+        android:layout_marginRight="@dimen/tchart_horizontal_margin"
         >
 
         <TextView
             android:id="@+id/title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/tchart_vertical_margin"
             android:text="@string/dummy"
             android:textColor="?attr/tchart_title_color"
             android:textStyle="bold"
@@ -26,7 +29,6 @@
             android:id="@+id/x_range"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/tchart_vertical_margin"
             android:gravity="end"
             android:text="@string/dummy"
             android:textColor="?attr/tchart_title_color"
@@ -38,6 +40,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/tchart_horizontal_margin"
+        android:layout_marginRight="@dimen/tchart_horizontal_margin"
         >
 
         <com.github.alunegov.tchart.MainChartView
@@ -104,6 +108,8 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/tchart_preview_height"
         android:layout_marginBottom="@dimen/tchart_vertical_margin"
+        android:layout_marginLeft="@dimen/tchart_horizontal_margin"
+        android:layout_marginRight="@dimen/tchart_horizontal_margin"
         />
 
     <com.github.alunegov.tchart.LineNameListView
@@ -111,9 +117,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/tchart_vertical_margin"
+        android:layout_marginLeft="@dimen/tchart_horizontal_margin"
+        android:layout_marginRight="@dimen/tchart_horizontal_margin"
         app:flexWrap="wrap"
         app:showDivider="middle"
         app:dividerDrawable="@drawable/line_name_list_divider"
+        />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tchart_delimiter_height"
+        android:background="?attr/tchart_delimiter_color"
         />
 
 </merge>

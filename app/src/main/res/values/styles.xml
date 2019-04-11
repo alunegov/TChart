@@ -5,8 +5,7 @@
         <item name="colorPrimary">@color/colorPrimary_Light</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark_Light</item>
         <item name="colorAccent">@color/colorAccent_Light</item>
-        <item name="android:statusBarColor">@color/colorPrimaryDark_Light</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="tchart_delimiter_color">@color/tchart_delimiter_Light</item>
         <item name="tchart_title_color">@color/tchart_title_Light</item>
         <item name="tchart_axis_text_color">@color/tchart_axis_text_Light</item>
         <item name="tchart_bars_x_axis_text_color">@color/tchart_bars_x_axis_text_Light</item>
@@ -27,6 +26,7 @@
         <item name="colorPrimary">@color/colorPrimary_Dark</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark_Dark</item>
         <item name="colorAccent">@color/colorAccent_Dark</item>
+        <item name="tchart_delimiter_color">@color/tchart_delimiter_Dark</item>
         <item name="tchart_title_color">@color/tchart_title_Dark</item>
         <item name="tchart_axis_text_color">@color/tchart_axis_text_Dark</item>
         <item name="tchart_bars_x_axis_text_color">@color/tchart_bars_x_axis_text_Dark</item>

@@ -7,6 +7,7 @@
         <attr name="line_name_text_size" format="dimension" />
     </declare-styleable>
 
+    <attr name="tchart_delimiter_color" format="reference|color" />
     <attr name="tchart_title_color" format="reference|color" />
     <attr name="tchart_axis_text_color" format="reference|color" />
     <attr name="tchart_bars_x_axis_text_color" format="reference|color" />
