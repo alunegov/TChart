@@ -43,6 +43,8 @@ public class PreviewChartView extends AbsChartView {
     private Paint fadedPaint;
     // настройки отрисовки рамки выбранного диапазона по X
     private Paint framePaint;
+    //
+    private Paint tickPaint;
 
     public PreviewChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -74,10 +76,11 @@ public class PreviewChartView extends AbsChartView {
         fadedPaint.setColor(fadedColor);
         fadedPaint.setStyle(Paint.Style.FILL);
 
-        framePaint = new Paint();
-        framePaint.setAntiAlias(true);
+        framePaint = new Paint(fadedPaint);
         framePaint.setColor(frameColor);
-        framePaint.setStyle(Paint.Style.FILL);
+
+        tickPaint = new Paint(fadedPaint);
+        tickPaint.setColor(Color.WHITE);
     }
 
     public void setOnChangeListener(@NotNull OnChangeListener onChangeListener) {
@@ -364,7 +367,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private final @NotNull RectF tmpRect = new RectF();
-    private static final float r = 10;
+    private static final float frameR = 10;
 
     private void drawLinesFade(@NotNull Canvas canvas) {
         final int w = getWidth();
@@ -372,30 +375,62 @@ public class PreviewChartView extends AbsChartView {
 
         // left
         tmpRect.set(0, borderHorizontalHeight, zoneLeftBorder.right, h);
-        canvas.drawRoundRect(tmpRect, r, r, fadedPaint);
-        //canvas.drawRect(zoneLeftBorder, fadedPaint);
+        drawLeftRoundedRect(canvas, tmpRect, frameR, fadedPaint);
         // right
         tmpRect.set(zoneRightBorder.left, borderHorizontalHeight, w, h);
-        canvas.drawRoundRect(tmpRect, r, r, fadedPaint);
-        //canvas.drawRect(zoneRightBorder, fadedPaint);
+        drawLeftRoundedRect(canvas, tmpRect, frameR, fadedPaint);
     }
+
+    private final Path tmpPath = new Path();
 
     private void drawFrame(@NotNull Canvas canvas) {
         final int h = getHeight();
 
         // left, vert
-        canvas.drawRoundRect(zoneLeftBorder, r, r, framePaint);
+        drawLeftRoundedRect(canvas, zoneLeftBorder, frameR, framePaint);
         // right, vert
-        canvas.drawRoundRect(zoneRightBorder, r, r, framePaint);
+        drawRightRoundedRect(canvas, zoneRightBorder, frameR, framePaint);
         // top, hor
         canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, borderHorizontalHeight, framePaint);
         // bottom, hor
         canvas.drawRect(zoneLeftBorder.right, h - borderHorizontalHeight, zoneRightBorder.left, h, framePaint);
 
-//        tmpRect.set(zoneLeftBorder.centerX() - 4, zoneLeftBorder.centerY() - 10, zoneLeftBorder.centerX() + 4, zoneLeftBorder.centerY() + 10);
         // left
-//        canvas.drawRoundRect(tmpRect, 4, 4, framePaint);
+        tmpRect.set(zoneLeftBorder.centerX() - 2, zoneLeftBorder.centerY() - 8, zoneLeftBorder.centerX() + 2, zoneLeftBorder.centerY() + 8);
+        canvas.drawRoundRect(tmpRect, 2, 2, tickPaint);
         // right
+        tmpRect.set(zoneRightBorder.centerX() - 2, zoneRightBorder.centerY() - 8, zoneRightBorder.centerX() + 2, zoneRightBorder.centerY() + 8);
+        canvas.drawRoundRect(tmpRect, 2, 2, tickPaint);
+    }
+
+    private final @NotNull RectF drawRoundedRect = new RectF();
+
+    private void drawLeftRoundedRect(Canvas canvas, RectF rect, float r, Paint paint) {
+        tmpPath.reset();
+        tmpPath.moveTo(rect.right, rect.bottom);
+        tmpPath.lineTo(rect.left - r, rect.bottom);
+        drawRoundedRect.set(rect.left, rect.bottom - 2 * r, rect.left + 2 * r, rect.bottom);
+        tmpPath.arcTo(drawRoundedRect, 90, 90);
+        tmpPath.lineTo(rect.left, rect.top - r);
+        drawRoundedRect.set(rect.left, rect.top, rect.left + 2 * r, rect.top + 2 * r);
+        tmpPath.arcTo(drawRoundedRect, 180, 90);
+        tmpPath.lineTo(rect.right, rect.top);
+        tmpPath.close();
+        canvas.drawPath(tmpPath, paint);
+    }
+
+    private void drawRightRoundedRect(Canvas canvas, RectF rect, float r, Paint paint) {
+        tmpPath.reset();
+        tmpPath.moveTo(rect.left, rect.top);
+        tmpPath.lineTo(rect.right - r, rect.top);
+        drawRoundedRect.set(rect.right - 2 * r, rect.top, rect.right, rect.top + 2 * r);
+        tmpPath.arcTo(drawRoundedRect, 270, 90);
+        tmpPath.lineTo(rect.right, rect.bottom - r);
+        drawRoundedRect.set(rect.right - 2 * r, rect.bottom - 2 * r, rect.right, rect.bottom);
+        tmpPath.arcTo(drawRoundedRect, 0, 90);
+        tmpPath.lineTo(rect.left, rect.bottom);
+        tmpPath.close();
+        canvas.drawPath(tmpPath, paint);
     }
 
     public interface OnChangeListener {
