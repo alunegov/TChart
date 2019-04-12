@@ -27,9 +27,21 @@ public class PreviewChartView extends AbsChartView {
     private static final int TOUCH_SLOP1_DP = 40;
     private static final float TOUCH_SLOP2_PERCENT = 0.1f;
 
+    private static final float FRAME_CORNER_RADIUS = 6f;
+
+    private static final float TICK_CORNER_RADIUS = 2f;
+
     private float borderVerticalWidth;
     private int borderHorizontalHeight;
     private float touchSlop1;
+    // радиус скругления всего вида (faded) и зоны выбранного диапазона (frame)
+    private float frameCornerRadius;
+    // полу-ширина засечки на границах диапазона (зависит от borderVerticalWidth)
+    private float tickHalfWidth;
+    // полу-высота засечки на границах диапазона (зависит от высоты вида)
+    private float tickHalfHeight;
+    // радиус скругления засечки
+    private float tickCornerRadius;
 
     private OnChangeListener onChangeListener;
     private MoveMode moveMode = MoveMode.NOP;
@@ -63,6 +75,10 @@ public class PreviewChartView extends AbsChartView {
             borderHorizontalHeight = 1;
         }
         touchSlop1 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TOUCH_SLOP1_DP, dm);
+        frameCornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, FRAME_CORNER_RADIUS, dm);
+        tickHalfWidth = borderVerticalWidth / 10f;
+        tickHalfHeight = 8f;  // обновляется в onSizeChanged
+        tickCornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TICK_CORNER_RADIUS, dm);
 
         final int fadedColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_faded_color, FADED_COLOR);
         final int frameColor = ChartUtils.getThemedColor(context, R.attr.tchart_preview_frame_color, FRAME_COLOR);
@@ -168,6 +184,8 @@ public class PreviewChartView extends AbsChartView {
 
         updateZoneLeftBorder(true);
         updateZoneRightBorder(true);
+
+        tickHalfHeight = zoneLeftBorder.height() / 7f;
 
         cachedLines = null;  // чтобы пересоздать кэш-картинку с новыми размерами
         useCachedLines(true);
@@ -367,18 +385,19 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private final @NotNull RectF tmpRect = new RectF();
-    private static final float frameR = 10;
 
     private void drawLinesFade(@NotNull Canvas canvas) {
         final int w = getWidth();
         final int h = getHeight() - borderHorizontalHeight;
 
+        //fadedPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_ATOP));
+
         // left
         tmpRect.set(0, borderHorizontalHeight, zoneLeftBorder.right, h);
-        drawLeftRoundedRect(canvas, tmpRect, frameR, fadedPaint);
+        drawLeftRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
         // right
         tmpRect.set(zoneRightBorder.left, borderHorizontalHeight, w, h);
-        drawLeftRoundedRect(canvas, tmpRect, frameR, fadedPaint);
+        drawRightRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
     }
 
     private final Path tmpPath = new Path();
@@ -387,20 +406,22 @@ public class PreviewChartView extends AbsChartView {
         final int h = getHeight();
 
         // left, vert
-        drawLeftRoundedRect(canvas, zoneLeftBorder, frameR, framePaint);
+        drawLeftRoundedRect(canvas, zoneLeftBorder, frameCornerRadius, framePaint);
         // right, vert
-        drawRightRoundedRect(canvas, zoneRightBorder, frameR, framePaint);
+        drawRightRoundedRect(canvas, zoneRightBorder, frameCornerRadius, framePaint);
         // top, hor
         canvas.drawRect(zoneLeftBorder.right, 0, zoneRightBorder.left, borderHorizontalHeight, framePaint);
         // bottom, hor
         canvas.drawRect(zoneLeftBorder.right, h - borderHorizontalHeight, zoneRightBorder.left, h, framePaint);
 
-        // left
-        tmpRect.set(zoneLeftBorder.centerX() - 2, zoneLeftBorder.centerY() - 8, zoneLeftBorder.centerX() + 2, zoneLeftBorder.centerY() + 8);
-        canvas.drawRoundRect(tmpRect, 2, 2, tickPaint);
-        // right
-        tmpRect.set(zoneRightBorder.centerX() - 2, zoneRightBorder.centerY() - 8, zoneRightBorder.centerX() + 2, zoneRightBorder.centerY() + 8);
-        canvas.drawRoundRect(tmpRect, 2, 2, tickPaint);
+        // tick, left
+        tmpRect.set(zoneLeftBorder.centerX() - tickHalfWidth, zoneLeftBorder.centerY() - tickHalfHeight,
+                zoneLeftBorder.centerX() + tickHalfWidth, zoneLeftBorder.centerY() + tickHalfHeight);
+        canvas.drawRoundRect(tmpRect, tickCornerRadius, tickCornerRadius, tickPaint);
+        // tick, right
+        tmpRect.left = zoneRightBorder.centerX() - tickHalfWidth;
+        tmpRect.right = zoneRightBorder.centerX() + tickHalfWidth;
+        canvas.drawRoundRect(tmpRect, tickCornerRadius, tickCornerRadius, tickPaint);
     }
 
     private final @NotNull RectF drawRoundedRect = new RectF();
