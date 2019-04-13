@@ -6,6 +6,7 @@ import android.graphics.RectF;
 
 import java.util.*;
 
+import android.util.Log;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,16 +35,17 @@ public class ChartDrawData {
     // флаг: границы отображаемого диапазона по X заданы
     private boolean xLeftSet, xRightSet;
     // минимальное и максимальное значения Y по отображаемому диапазону X по всем сигналам (с учётом yMinMode)
-    private int yMin, yMax;
+    private int yLeftMin, yLeftMax, yRightMin, yRightMax;
     // коэффициент пересчета значений в пиксели
-    private float scaleX, scaleY;
+    private float scaleX, scaleYLeft, scaleYRight;
     // отображаемые данные линий (сигналов) в виде Path
     private Path[] linesPaths;
     private float[][] linesLines;
     // Метки для оцифровки осей
     private List<AxisMark> xAxisMarks, yAxisMarks;
 
-    private final @NotNull Matrix matrix = new Matrix();
+    private final @NotNull Matrix matrixLeft = new Matrix();
+    private final @NotNull Matrix matrixRight = new Matrix();
     private float[] pts;
 
     private RectF[][] linesRects;
@@ -121,7 +123,7 @@ public class ChartDrawData {
         this.area.set(area);
         this.areaSet = true;
 
-        //updateYRange();
+        updateYRange();
         updateScalesAndMatrix();
         updateLinesAndAxis();
     }
@@ -176,52 +178,89 @@ public class ChartDrawData {
     }
 
     public void getYRange(@NotNull int[] range) {
-        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (range.length != 4)) throw new AssertionError();
 
-        range[0] = yMin;
-        range[1] = yMax;
+        range[0] = yLeftMin;
+        range[1] = yLeftMax;
+        range[2] = yRightMin;
+        range[3] = yRightMax;
     }
 
-    public void setYRange(int yMin, int yMax) {
-        this.yMin = yMin;
-        this.yMax = yMax;
+    public void setYRange(int yLeftMin, int yLeftMax, int yRightMin, int yRightMax) {
+        this.yLeftMin = yLeftMin;
+        this.yLeftMax = yLeftMax;
+        this.yRightMin = yRightMin;
+        this.yRightMax = yRightMax;
 
         updateScalesAndMatrix();
         updateLinesAndAxis();
     }
 
-    public void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
-        if (BuildConfig.DEBUG && (range.length != 2)) throw new AssertionError();
+    private final @NotNull int[] tmpYLeftMinMax = new int[2];
+    private final @NotNull int[] tmpYRightMinMax = new int[2];
+//    private final @NotNull YAxisMarksHelper tmpYMarksHelper = new YAxisMarksHelper();
+//    private final @NotNull YAxisMarksHelper tmpYMarksHelper2 = new YAxisMarksHelper();
 
-        final @NotNull int[] yMinMax = inputDataStats.findYMinMax(xLeftIndex, xRightIndex, linesVisibilityState);
+    private void calcYRangeAt(int xLeftIndex, int xRightIndex, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
+        if (BuildConfig.DEBUG && (range.length != 4)) throw new AssertionError();
 
-        int yMinAt;
+        inputDataStats.findYMinMax(xLeftIndex, xRightIndex, false, linesVisibilityState, tmpYLeftMinMax);
+        inputDataStats.findYMinMax(xLeftIndex, xRightIndex, true, linesVisibilityState, tmpYRightMinMax);
+
         switch (yMinMode) {
             case RANGE:
-                yMinAt = yMinMax[0];
+                range[0] = tmpYLeftMinMax[0];
+                range[2] = tmpYRightMinMax[0];
                 break;
             case ZERO:
-                if (BuildConfig.DEBUG && (yMinMax[0] < 0)) throw new AssertionError();
-                yMinAt = 0;
+                if (BuildConfig.DEBUG && (tmpYLeftMinMax[0] < 0)) throw new AssertionError();
+                range[0] = 0;
+                range[2] = 0;
                 break;
             default:
-                yMinAt = 0;
+                range[0] = 0;
+                range[2] = 0;
         }
 
-        int yMaxAt = yMinMax[1];
+        range[1] = tmpYLeftMinMax[1];
+        range[3] = tmpYRightMinMax[1];
 
         // добавляем к минимуму/максимуму часть размаха, чтобы снизу/сверху было немного места (так на ref, была видна пометка точки)
         // TODO: добавлять к минимуму не просто "часть размаха", а так, чтобы первая линия оцифровки была в "нулевом пикселе"
         if (mYRangeEnlarging) {
-            final int yDelta = (int) (0.05 * (yMaxAt - yMinAt));
-            if (yMinAt != 0) {
-                yMinAt -= yDelta;
+            final int yLeftDelta = Math.round(0.05f * (range[1] - range[0]));
+            if (range[0] != 0) {
+                range[0] -= yLeftDelta;
             }
-            yMaxAt += yDelta;
-        }
+            range[1] += yLeftDelta;
 
-        range[0] = yMinAt;
-        range[1] = yMaxAt;
+            final int yRightDelta = Math.round(0.05f * (range[3] - range[2]));
+            if (range[2] != 0) {
+                range[2] -= yRightDelta;
+            }
+            range[3] += yRightDelta;
+
+/*            //
+            if (areaSet) {
+                calcYAxisMarksHelper(range[0], range[1], tmpYMarksHelper);
+
+                Log.d("CDD", String.format("calcYRangeAt 1: yMin = %d, yMax = %d, swing = %d, tmpYMarksHelper - %s", range[0], range[1], range[1] - range[0], tmpYMarksHelper));
+
+                if (tmpYMarksHelper.startValue > range[0]) {
+                    tmpYMarksHelper.startValue -= tmpYMarksHelper.stepValue;
+                }
+                range[0] = tmpYMarksHelper.startValue;
+
+                while (tmpYMarksHelper.startValue < range[1]) {
+                    tmpYMarksHelper.startValue += tmpYMarksHelper.stepValue;
+                }
+                range[1] = tmpYMarksHelper.startValue;
+
+                calcYAxisMarksHelper(range[0], range[1], tmpYMarksHelper2);
+
+                Log.d("CDD", String.format("calcYRangeAt 2: yMin = %d, yMax = %d, swing = %d, tmpYMarksHelper - %s", range[0], range[1], range[1] - range[0], tmpYMarksHelper2));
+            }*/
+        }
     }
 
     public void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] linesVisibilityState, @NotNull int[] range) {
@@ -229,14 +268,6 @@ public class ChartDrawData {
         final int xRightIndexAt = findXRightIndex(xRightValue, xLeftIndexAt);
 
         calcYRangeAt(xLeftIndexAt, xRightIndexAt, linesVisibilityState, range);
-    }
-
-    public float getXScale() {
-        return scaleX;
-    }
-
-    public float getYScale() {
-        return scaleY;
     }
 
     public @NotNull Path[] getLinesPaths() {
@@ -259,23 +290,31 @@ public class ChartDrawData {
         return yAxisMarks;
     }
 
-    private final @NotNull int[] yRange = new int[2];
+    private final @NotNull int[] tmpYRange = new int[4];
 
     private void updateYRange() {
-        calcYRangeAt(xLeftIndex, xRightIndex, inputDataStats.getLinesVisibilityState(), yRange);
+        calcYRangeAt(xLeftIndex, xRightIndex, inputDataStats.getLinesVisibilityState(), tmpYRange);
 
-        yMin = yRange[0];
-        yMax = yRange[1];
+        yLeftMin = tmpYRange[0];
+        yLeftMax = tmpYRange[1];
+        yRightMin = tmpYRange[2];
+        yRightMax = tmpYRange[3];
     }
 
     private void updateScalesAndMatrix() {
         scaleX = area.width() / Math.abs(xRightValue - xLeftValue);
-        scaleY = area.height() / (float) Math.abs(yMax - yMin);
+        scaleYLeft = area.height() / (float) Math.abs(yLeftMax - yLeftMin);
+        scaleYRight = area.height() / (float) Math.abs(yRightMax - yRightMin);
 
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
-        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
-        matrix.setScale(scaleX, -scaleY);
-        matrix.postTranslate(xToPixelHelper, yToPixelHelper);
+
+        final float yLeftToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
+        matrixLeft.setScale(scaleX, -scaleYLeft);
+        matrixLeft.postTranslate(xToPixelHelper, yLeftToPixelHelper);
+
+        final float yRightToPixelHelper = area.bottom/* - y * scaleYRight*/ + yRightMin * scaleYRight;
+        matrixRight.setScale(scaleX, -scaleYRight);
+        matrixRight.postTranslate(xToPixelHelper, yRightToPixelHelper);
     }
 
 //    private boolean b1 = false;
@@ -323,11 +362,14 @@ public class ChartDrawData {
 
     private void updateLines_LINE_Path() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
-        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+        final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesPaths.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             linesPaths[j].reset();
 
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
@@ -336,12 +378,12 @@ public class ChartDrawData {
 
             linesPaths[j].moveTo(
                     xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
-                    yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY
+                    yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleYLeft
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linesPaths[j].lineTo(
                         xToPixelHelper + inputData.XValues[i] * scaleX,
-                        yToPixelHelper - inputData.LinesValues[j][i] * scaleY
+                        yToPixelHelper - inputData.LinesValues[j][i] * scaleYLeft
                 );
             }
         }
@@ -349,11 +391,14 @@ public class ChartDrawData {
 
     private void updateLines_LINE_Lines() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
-        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+        final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
@@ -362,17 +407,17 @@ public class ChartDrawData {
 
             int k = 0;
             lineLines[k] = xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX;
-            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY;
+            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleYLeft;
             k += 2;
             for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
                 lineLines[k] = xToPixelHelper + inputData.XValues[i] * scaleX;
-                lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][i] * scaleY;
+                lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][i] * scaleYLeft;
                 lineLines[k + 2] = lineLines[k];
                 lineLines[k + 3] = lineLines[k + 1];
                 k += 4;
             }
             lineLines[k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
-            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
+            lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleYLeft;
 
             if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4)) throw new AssertionError();
         }
@@ -380,6 +425,7 @@ public class ChartDrawData {
 
     private void updateLines_LINE_Lines_Matrix() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         int linePtsCount = xRightIndex - xLeftIndex + 1;
 
@@ -404,7 +450,11 @@ public class ChartDrawData {
             pts[k] = inputData.XValues[xRightIndex];
             pts[k + 1] = inputData.LinesValues[j][xRightIndex];
 
-            matrix.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
+            if (linesRightAlign[j]) {
+                matrixRight.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
+            } else {
+                matrixLeft.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
+            }
 
             if (BuildConfig.DEBUG && ((k + 2) != linePtsCount * 2)) throw new AssertionError();
         }
@@ -412,6 +462,7 @@ public class ChartDrawData {
 
     private void updateLines_BAR_Rect() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final int ptsCount = xRightIndex - xLeftIndex + 1;
         final float rectWidth = area.width() / ptsCount;
@@ -419,6 +470,8 @@ public class ChartDrawData {
 
         int l = -1;
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
@@ -430,7 +483,7 @@ public class ChartDrawData {
             if (l == -1) {
                 for (int i = xLeftIndex; i <= xRightIndex; i++) {
                     lineRects[i].left = xToPixel(inputData.XValues[i]);
-                    lineRects[i].top = yToPixel(inputData.LinesValues[j][i] * lineK);
+                    lineRects[i].top = yLeftToPixel(inputData.LinesValues[j][i] * lineK);
                     lineRects[i].bottom = area.bottom;
                 }
             } else {
@@ -438,7 +491,7 @@ public class ChartDrawData {
 
                 for (int i = xLeftIndex; i <= xRightIndex; i++) {
                     lineRects[i].left = prevLineRects[i].left;
-                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK) * scaleY;
+                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK) * scaleYLeft;
                     lineRects[i].bottom = prevLineRects[i].top;
                 }
             }
@@ -454,6 +507,7 @@ public class ChartDrawData {
 
     private void updateLines_BAR_Path_Matrix() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final int[] stackedSum = inputDataStats.getStackedSum();
         assert stackedSum != null;
@@ -467,10 +521,12 @@ public class ChartDrawData {
         final float rectWidth = (xRightValue - xLeftValue) / ptsCount;
         //Log.d("CDD", String.format("ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
 
-        float prevMin = yMin;
+        float prevMin = yLeftMin;
         float currMin;
 
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             final Path linePath = linesPaths[j];
 
             linePath.reset();
@@ -481,7 +537,7 @@ public class ChartDrawData {
 
             final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
 
-            currMin = yMax;
+            currMin = yLeftMax;
 
             for (int i = xLeftIndex; i <= xRightIndex; i++) {
                 tmpStackedSum[i] += inputData.LinesValues[j][i] * lineK;
@@ -523,7 +579,7 @@ public class ChartDrawData {
             // left |
             linePath.close();
 
-            linePath.transform(matrix);
+            linePath.transform(matrixLeft);
 
             prevMin = currMin;
         }
@@ -531,6 +587,7 @@ public class ChartDrawData {
 
     private void updateLines_AREA_Rect() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final int[] stackedSum = inputDataStats.getStackedSum();
         assert stackedSum != null;
@@ -542,6 +599,8 @@ public class ChartDrawData {
 
         int l = -1;
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
@@ -552,7 +611,7 @@ public class ChartDrawData {
             if (l == -1) {
                 for (int i = xLeftIndex; i <= xRightIndex; i++) {
                     lineRects[i].left = xToPixel(inputData.XValues[i]);
-                    lineRects[i].top = yToPixel(inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f);
+                    lineRects[i].top = yLeftToPixel(inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f);
                     lineRects[i].bottom = area.bottom;
                 }
             } else {
@@ -560,7 +619,7 @@ public class ChartDrawData {
 
                 for (int i = xLeftIndex; i <= xRightIndex; i++) {
                     lineRects[i].left = prevLineRects[i].left;
-                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f) * scaleY;
+                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f) * scaleYLeft;
                     lineRects[i].bottom = prevLineRects[i].top;
                 }
             }
@@ -576,6 +635,7 @@ public class ChartDrawData {
 
     private void updateLines_AREA_Path() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         final int[] stackedSum = inputDataStats.getStackedSum();
         assert stackedSum != null;
@@ -586,9 +646,11 @@ public class ChartDrawData {
         }
 
         final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
-        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+        final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             final Path linePath = linesPaths[j];
 
             linePath.reset();
@@ -606,24 +668,24 @@ public class ChartDrawData {
 
             linePath.moveTo(
                     xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
-                    yToPixelHelper - (tmpStackedSum[xLeftIndex] / stackedSum[xLeftIndex] * 100f) * scaleY
+                    yToPixelHelper - (tmpStackedSum[xLeftIndex] / stackedSum[xLeftIndex] * 100f) * scaleYLeft
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linePath.lineTo(
                         xToPixelHelper + inputData.XValues[i] * scaleX,
-                        yToPixelHelper - (tmpStackedSum[i] / stackedSum[i] * 100f) * scaleY
+                        yToPixelHelper - (tmpStackedSum[i] / stackedSum[i] * 100f) * scaleYLeft
                 );
             }
 
             // right |
             linePath.lineTo(
                     xToPixelHelper + inputData.XValues[xRightIndex] * scaleX,
-                    yToPixelHelper - yMin * scaleY
+                    yToPixelHelper - yLeftMin * scaleYLeft
             );
             // _
             linePath.lineTo(
                     xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
-                    yToPixelHelper - yMin * scaleY
+                    yToPixelHelper - yLeftMin * scaleYLeft
             );
             // left |
             linePath.close();
@@ -632,6 +694,7 @@ public class ChartDrawData {
 
     private void updateLines_AREA_Path_Matrix() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         int lastVisibleLineIndex = -1;
         for (int j = linesLines.length - 1; j >= 0; j--) {
@@ -652,6 +715,8 @@ public class ChartDrawData {
         float prevPercMin = 0f;
 
         for (int j = 0; j < linesLines.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
             final Path linePath = linesPaths[j];
 
             linePath.reset();
@@ -707,7 +772,7 @@ public class ChartDrawData {
                 );
             }
 
-            linePath.transform(matrix);
+            linePath.transform(matrixLeft);
 
             prevPercMin = currPercMin;
         }
@@ -720,8 +785,8 @@ public class ChartDrawData {
         return mTmpStackedSum;
     }
 
-    public @NotNull Matrix getMatrix() {
-        return matrix;
+    public @NotNull Matrix getMatrixLeft() {
+        return matrixLeft;
     }
 
     private void updateAxisMarks() {
@@ -760,8 +825,12 @@ public class ChartDrawData {
         return (px - area.left) / scaleX + xLeftValue;
     }
 
-    public float yToPixel(float y) {
-        return area.bottom - (y - yMin) * scaleY;
+    public float yLeftToPixel(float y) {
+        return area.bottom - (y - yLeftMin) * scaleYLeft;
+    }
+
+    public float yRightToPixel(float y) {
+        return area.bottom - (y - yRightMin) * scaleYRight;
     }
 
     private boolean getIsMarksUpdating() {
@@ -808,68 +877,81 @@ public class ChartDrawData {
         for (float x = startXPixel; x < w; x += stepPixel) {
             final String text = xAxisTextCnv.toText(i);
 
-            xAxisMarks.add(new AxisMark(x, text));
+            xAxisMarks.add(new AxisMark(x, text, null));
 
             i += stepValue;
         }
     }
 
+    private final @NotNull YAxisMarksHelper yMarksHelper = new YAxisMarksHelper();
+
     private void updateYAxisMarks() {
         if (BuildConfig.DEBUG && (yAxisMarks == null)) throw new AssertionError();
-        if (BuildConfig.DEBUG && (axisLineCount <= 0)) throw new AssertionError();
+
+        calcYAxisMarksHelper(yLeftMin, yLeftMax, yMarksHelper);
+
+        //Log.d("CDD", String.format("updateYAxisMarks: yLeftMin = %d, yLeftMax = %d, yLeftMarksHelper - %s", yLeftMin, yLeftMax, yMarksHelper));
 
         yAxisMarks.clear();
 
-        final float ySwing = Math.abs(yMax - yMin);
+        int i = yMarksHelper.startValue;
+        for (float y = yMarksHelper.startPixel; y >= 0; y -= yMarksHelper.stepPixel) {
+            final String text = String.valueOf(i);
 
-        int stepValue = (int) (ySwing / axisLineCount);
+            yAxisMarks.add(new AxisMark(y, text, null));
+
+            i += yMarksHelper.stepValue;
+        }
+    }
+
+    private void calcYAxisMarksHelper(int yMin, int yMax, @NotNull YAxisMarksHelper marksHelper) {
+        if (BuildConfig.DEBUG && (axisLineCount <= 0)) throw new AssertionError();
+        if (BuildConfig.DEBUG && !areaSet) throw new AssertionError();
+
+        final float ySwing = Math.abs(yMax - yMin);
+        final float scaleY = area.height() / ySwing;
+
+        marksHelper.stepValue = Math.round(ySwing / axisLineCount);
 
         // beautify step
         int k = 0;
-        while (stepValue >= 20) {
-            stepValue /= 10;
+        while (marksHelper.stepValue >= 20) {
+            marksHelper.stepValue /= 10;
             k++;
         }
         // значения (10, 19] при делении на 10 "дадут" 1, и линий окажется слишком много - равномерно распределяем их
         // между значениями 10, 15 и 20.
-        if (stepValue > 10) {
-            if (stepValue >= 18) {
-                stepValue = 20;
-            } else if (stepValue >= 14) {
-                stepValue = 15;
+        if (marksHelper.stepValue > 10) {
+            if (marksHelper.stepValue >= 18) {
+                marksHelper.stepValue = 20;
+            } else if (marksHelper.stepValue >= 14) {
+                marksHelper.stepValue = 15;
             } else {
-                stepValue = 10;
+                marksHelper.stepValue = 10;
             }
         }
         while (k > 0) {
-            stepValue *= 10;
+            marksHelper.stepValue *= 10;
             k--;
         }
 
-        if (stepValue == 0) {
+        if (marksHelper.stepValue == 0) {
             return;
         }
 
-        final float stepPixel = stepValue * scaleY;
-        if (stepPixel <= 0) {
+        marksHelper.stepPixel = marksHelper.stepValue * scaleY;
+        if (marksHelper.stepPixel <= 0) {
             return;
         }
 
         // начало отсчёта
-        int startYValue = yMin / stepValue * stepValue;
-        if (startYValue < yMin) {
-            startYValue += stepValue;
+        marksHelper.startValue = yMin / marksHelper.stepValue * marksHelper.stepValue;
+        if (marksHelper.startValue < yMin) {
+            marksHelper.startValue += marksHelper.stepValue;
         }
-        final float startYPixel = yToPixel(startYValue);
 
-        int i = startYValue;
-        for (float y = startYPixel; y >= 0; y -= stepPixel) {
-            final String text = String.valueOf(i);
-
-            yAxisMarks.add(new AxisMark(y, text));
-
-            i += stepValue;
-        }
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+        marksHelper.startPixel = yToPixelHelper - marksHelper.startValue * scaleY;
     }
 
     // Режим нижней границы Y - какое значение используется для минимума по Y на графике
@@ -887,6 +969,18 @@ public class ChartDrawData {
         RECT,
     }
 
+    private static class YAxisMarksHelper {
+        int stepValue;
+        float stepPixel;
+
+        int startValue;
+        float startPixel;
+
+        public String toString() {
+            return String.format("stepValue = %d, stepPixel = %f, startValue = %d, startPixel = %f", stepValue, stepPixel, startValue, startPixel);
+        }
+    }
+
     public interface AxisTextConverter {
         @NotNull String toText(long value);
     }
@@ -894,10 +988,12 @@ public class ChartDrawData {
     public static class AxisMark {
         private float position;
         private @NotNull String text;
+        private @Nullable String textRight;
 
-        public AxisMark(float position, @NotNull String text) {
+        public AxisMark(float position, @NotNull String text, @Nullable String textRegiht) {
             this.position = position;
             this.text = text;
+            this.textRight = textRegiht;
         }
 
         public float getPosition() {
@@ -906,6 +1002,10 @@ public class ChartDrawData {
 
         public @NotNull String getText() {
             return text;
+        }
+
+        public @Nullable String getTextRight() {
+            return textRight;
         }
     }
 }

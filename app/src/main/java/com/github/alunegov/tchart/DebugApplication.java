@@ -9,9 +9,9 @@ public class DebugApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-/*        TinyDancer.create()
+        TinyDancer.create()
                 .startingXPosition(0)
                 .startingYPosition(0)
-                .show(this);*/
+                .show(this);
     }
 }

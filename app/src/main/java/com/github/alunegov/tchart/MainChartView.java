@@ -64,8 +64,8 @@ public class MainChartView extends AbsChartView {
     private Paint linesMarkerFillPaint;
     // настройки отрисовки надписей осей
     private Paint xAxisTextPaint;
-    // в спец. случае это отдельные настройки (см. AXIS_TEXT_DARK_BARS_Y_COLOR)
-    private Paint yAxisTextPaint;
+    // в спец. случае это отдельные настройки (см. FLAG_Y_SCALED или AXIS_TEXT_DARK_BARS_Y_COLOR)
+    private Paint yLeftAxisTextPaint, yRightAxisTextPaint;
     // настройки отрисовки линий оцифровки (и курсора)
     private Paint axisLinePaint;
 
@@ -101,8 +101,7 @@ public class MainChartView extends AbsChartView {
 
         linesMarkerFillPaint = new Paint();
         linesMarkerFillPaint.setAntiAlias(true);
-        // activity background as fill color
-        linesMarkerFillPaint.setColor(backColor);
+        linesMarkerFillPaint.setColor(backColor);  // activity background as fill color
         linesMarkerFillPaint.setStyle(Paint.Style.FILL);
 
         xAxisTextPaint = new Paint();
@@ -111,7 +110,9 @@ public class MainChartView extends AbsChartView {
         xAxisTextPaint.setStyle(Paint.Style.FILL);
         xAxisTextPaint.setTextSize(axisTextSize);
 
-        yAxisTextPaint = new Paint(xAxisTextPaint);
+        yLeftAxisTextPaint = new Paint(xAxisTextPaint);
+
+        yRightAxisTextPaint = new Paint(xAxisTextPaint);
 
         axisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth, true);
 
@@ -120,7 +121,8 @@ public class MainChartView extends AbsChartView {
 
     public void setAxisTextSize(float px) {
         xAxisTextPaint.setTextSize(px);
-        yAxisTextPaint.setTextSize(px);
+        yLeftAxisTextPaint.setTextSize(px);
+        yRightAxisTextPaint.setTextSize(px);
 
         updateGraphAreaHeight();
 
@@ -134,9 +136,26 @@ public class MainChartView extends AbsChartView {
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
         drawData.enableYRangeEnlarging();
 
-        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+        if (inputData.flags.get(ChartInputData.FLAG_Y_SCALED)) {
+            final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
+
+            for (int j = 0; j < inputData.LinesValues.length; j++) {
+                if (!linesRightAlign[j]) {
+                    yLeftAxisTextPaint.setColor(inputData.LinesColors[j]);
+                    break;
+                }
+            }
+
+            for (int j = 0; j < inputData.LinesValues.length; j++) {
+                if (linesRightAlign[j]) {
+                    yRightAxisTextPaint.setColor(inputData.LinesColors[j]);
+                    break;
+                }
+            }
+        } else if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
             xAxisTextPaint.setColor(barsXAxisTextColor);
-            yAxisTextPaint.setColor(barsYAxisTextColor);
+            yLeftAxisTextPaint.setColor(barsYAxisTextColor);
+            yRightAxisTextPaint.setColor(barsYAxisTextColor);
         }
 
         //invalidate();
@@ -175,13 +194,13 @@ public class MainChartView extends AbsChartView {
         //postInvalidateDelayed(12);
     }
 
-    public void setXYRange(float xLeftValue, float xRightValue, int yMin, int yMax) {
+    public void setXYRange(float xLeftValue, float xRightValue, int yLeftMin, int yLeftMax, int yRightMin, int yRightMax) {
         if (drawData == null) {
             return;
         }
 
         drawData.setXRange(xLeftValue, xRightValue, false);
-        drawData.setYRange(yMin, yMax);
+        drawData.setYRange(yLeftMin, yLeftMax, yRightMin, yRightMax);
 
         updateCursorPopupPosition();
 
@@ -346,7 +365,7 @@ public class MainChartView extends AbsChartView {
                 if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_ON) {
                     percentTextView.setText(s);
                 }
-                percentTextView.setScaleY(linesVisibilityState[i] / 255f);
+                percentTextView.setScaleY((float) linesVisibilityState[i] / ChartInputDataStats.VISIBILITY_STATE_ON);
             }
         }
         // сумма всех значений
@@ -373,7 +392,7 @@ public class MainChartView extends AbsChartView {
                                             int state, boolean refill) {
         if (BuildConfig.DEBUG && (view == null)) throw new AssertionError();
 
-        final float scale = state / 255f;
+        final float scale = (float) state / ChartInputDataStats.VISIBILITY_STATE_ON;
         //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
 
         final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
@@ -399,7 +418,7 @@ public class MainChartView extends AbsChartView {
             return;
         }
 
-        int cursorX = (int) drawData.xToPixel(inputData.XValues[cursorIndex]);
+        int cursorX = Math.round(drawData.xToPixel(inputData.XValues[cursorIndex]));
 
         final int viewRight = getRight();
 
@@ -462,7 +481,7 @@ public class MainChartView extends AbsChartView {
         final List<ChartDrawData.AxisMark> marks = drawData.getYAxisMarks();
         if (marks == null) throw new AssertionError();
 
-        boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
+        final boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
         final int startX = getPaddingLeft();
         final int w = getWidth() - getPaddingRight();
 
@@ -472,12 +491,24 @@ public class MainChartView extends AbsChartView {
             canvas.drawLine(startX, y, w, y, axisLinePaint);
 
             float x;
-            if (isLayoutRtl) {
-                x = w - yAxisTextPaint.measureText(mark.getText());
-            } else {
-                x = startX;
+
+            if (mark.getText() != null) {
+                if (isLayoutRtl) {
+                    x = w - yLeftAxisTextPaint.measureText(mark.getText());
+                } else {
+                    x = startX;
+                }
+                canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, yLeftAxisTextPaint);
             }
-            canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, yAxisTextPaint);
+
+            if (mark.getTextRight() != null) {
+                if (isLayoutRtl) {
+                    x = startX;
+                } else {
+                    x = w - yRightAxisTextPaint.measureText(mark.getTextRight());
+                }
+                canvas.drawText(mark.getTextRight(), x, y - yAxisTextVerticalMargin, yRightAxisTextPaint);
+            }
         }
     }
 
@@ -501,13 +532,19 @@ public class MainChartView extends AbsChartView {
         }
 
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
 
         for (int i = 0; i < inputData.LinesValues.length; i++) {
             if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
-            final float cursorY = drawData.yToPixel(inputData.LinesValues[i][cursorIndex]);
+            final float cursorY;
+            if (linesRightAlign[i]) {
+                cursorY = drawData.yRightToPixel(inputData.LinesValues[i][cursorIndex]);
+            } else {
+                cursorY = drawData.yLeftToPixel(inputData.LinesValues[i][cursorIndex]);
+            }
 
             // граница маркера цветом графика
             canvas.drawCircle(cursorX, cursorY, markerRadius, linesPaints[i]);

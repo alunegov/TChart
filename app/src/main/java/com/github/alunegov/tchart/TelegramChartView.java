@@ -7,7 +7,7 @@ import android.content.res.TypedArray;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
+//import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,8 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.jetbrains.annotations.NotNull;
-
-import simplify.Simplify;
 
 public class TelegramChartView extends LinearLayout {
     private static final int DEF_TEXT_SIZE_SP = 17;
@@ -29,7 +27,7 @@ public class TelegramChartView extends LinearLayout {
     private LineNameListView lineNamesView;
 
     private MainChartView.XAxisConverter xRangeTextConverter;
-    private final @NotNull long[] xRange = new long[2];
+    private final @NotNull long[] tmpXRange = new long[2];
 
     private final @NotNull ValueAnimator zoneChangeAnimator = new ValueAnimator();
     private boolean isPendingZoneChangeAnimation = false;
@@ -142,6 +140,9 @@ public class TelegramChartView extends LinearLayout {
         }
     };
 
+    private final int[] tmpStartYRange = new int[4];
+    private final int[] tmpStopYRange = new int[4];
+
     private void startZoneChangeAnimation(float zoneLeftValue, float zoneRightValue, boolean b) {
         final PropertyValuesHolder xl, xr;
         if (b) {
@@ -155,14 +156,13 @@ public class TelegramChartView extends LinearLayout {
         }
         //Log.v("TCV", String.format("left = %f, right = %f, swing = %f startZoneChangeAnimation", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
 
-        final int[] startYRange = new int[2];
-        final int[] stopYRange = new int[2];
+        mainChartView.calcAnimationRanges(zoneLeftValue, zoneRightValue, tmpStartYRange, tmpStopYRange);
+        final PropertyValuesHolder yLeftMin = PropertyValuesHolder.ofInt("yLeftMin", tmpStartYRange[0], tmpStopYRange[0]);
+        final PropertyValuesHolder yLeftMax = PropertyValuesHolder.ofInt("yLeftMax", tmpStartYRange[1], tmpStopYRange[1]);
+        final PropertyValuesHolder yRightMin = PropertyValuesHolder.ofInt("yRightMin", tmpStartYRange[2], tmpStopYRange[2]);
+        final PropertyValuesHolder yRightMax = PropertyValuesHolder.ofInt("yRightMax", tmpStartYRange[3], tmpStopYRange[3]);
 
-        mainChartView.calcAnimationRanges(zoneLeftValue, zoneRightValue, startYRange, stopYRange);
-        final PropertyValuesHolder ymin = PropertyValuesHolder.ofInt("ymin", startYRange[0], stopYRange[0]);
-        final PropertyValuesHolder ymax = PropertyValuesHolder.ofInt("ymax", startYRange[1], stopYRange[1]);
-
-        zoneChangeAnimator.setValues(xl, xr, ymin, ymax);
+        zoneChangeAnimator.setValues(xl, xr, yLeftMin, yLeftMax, yRightMin, yRightMax);
         zoneChangeAnimator.start();
     }
 
@@ -171,14 +171,16 @@ public class TelegramChartView extends LinearLayout {
         public void onAnimationUpdate(ValueAnimator animation) {
             final float xl = (float) animation.getAnimatedValue("xl");
             final float xr = (float) animation.getAnimatedValue("xr");
-            final int ymin = (int) animation.getAnimatedValue("ymin");
-            final int ymax = (int) animation.getAnimatedValue("ymax");
+            final int yLeftMin = (int) animation.getAnimatedValue("yLeftMin");
+            final int yLeftMax = (int) animation.getAnimatedValue("yLeftMax");
+            final int yRightMin = (int) animation.getAnimatedValue("yRightMin");
+            final int yRightMax = (int) animation.getAnimatedValue("yRightMax");
             //Log.v("TCV", String.format("left = %f, right = %f, swing = %f setXYRange at %d", xl, xr, xr - xl, animation.getCurrentPlayTime()));
 
-            mainChartView.setXYRange(xl, xr, ymin, ymax);
+            mainChartView.setXYRange(xl, xr, yLeftMin, yLeftMax, yRightMin, yRightMax);
 
-            mainChartView.getXRange(xRange);
-            updateXRangeText(xRange[0], xRange[1]);
+            mainChartView.getXRange(tmpXRange);
+            updateXRangeText(tmpXRange[0], tmpXRange[1]);
         }
     };
 
@@ -200,24 +202,26 @@ public class TelegramChartView extends LinearLayout {
 
         lineVisibilityAnimator.cancel();
 
-        final int[] startYRange = new int[2];
-        final int[] stopYRange = new int[2];
-
-        int startLineVisibilityState;
+        final int startLineVisibilityState;
         if (exceptLine) {
-            startLineVisibilityState = inputDataStats.getLineVisibilityState(lineIndex);
+            final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+            startLineVisibilityState = linesVisibilityState[lineIndex];
         } else {
             startLineVisibilityState = isChecked ? ChartInputDataStats.VISIBILITY_STATE_OFF : ChartInputDataStats.VISIBILITY_STATE_ON;
         }
         final int stopLineVisibilityState = isChecked ? ChartInputDataStats.VISIBILITY_STATE_ON : ChartInputDataStats.VISIBILITY_STATE_OFF;
 
-        mainChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, startYRange, stopYRange);
-        final PropertyValuesHolder ymin_main = PropertyValuesHolder.ofInt("ymin_main", startYRange[0], stopYRange[0]);
-        final PropertyValuesHolder ymax_main = PropertyValuesHolder.ofInt("ymax_main", startYRange[1], stopYRange[1]);
+        mainChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRange, tmpStopYRange);
+        final PropertyValuesHolder yLeftMin_main = PropertyValuesHolder.ofInt("yLeftMin_main", tmpStartYRange[0], tmpStopYRange[0]);
+        final PropertyValuesHolder yLeftMax_main = PropertyValuesHolder.ofInt("yLeftMax_main", tmpStartYRange[1], tmpStopYRange[1]);
+        final PropertyValuesHolder yRightMin_main = PropertyValuesHolder.ofInt("yRightMin_main", tmpStartYRange[2], tmpStopYRange[2]);
+        final PropertyValuesHolder yRightMax_main = PropertyValuesHolder.ofInt("yRightMax_main", tmpStartYRange[3], tmpStopYRange[3]);
 
-        previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, startYRange, stopYRange);
-        final PropertyValuesHolder ymin_preview = PropertyValuesHolder.ofInt("ymin_preview", startYRange[0], stopYRange[0]);
-        final PropertyValuesHolder ymax_preview = PropertyValuesHolder.ofInt("ymax_preview", startYRange[1], stopYRange[1]);
+        previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRange, tmpStopYRange);
+        final PropertyValuesHolder yLeftMin_preview = PropertyValuesHolder.ofInt("yLeftMin_preview", tmpStartYRange[0], tmpStopYRange[0]);
+        final PropertyValuesHolder yLeftMax_preview = PropertyValuesHolder.ofInt("yLeftMax_preview", tmpStartYRange[1], tmpStopYRange[1]);
+        final PropertyValuesHolder yRightMin_preview = PropertyValuesHolder.ofInt("yRightMin_preview", tmpStartYRange[2], tmpStopYRange[2]);
+        final PropertyValuesHolder yRightMax_preview = PropertyValuesHolder.ofInt("yRightMax_preview", tmpStartYRange[3], tmpStopYRange[3]);
 
         final PropertyValuesHolder lineVisibilityState = PropertyValuesHolder.ofInt("lineVisibilityState", startLineVisibilityState, stopLineVisibilityState);
 
@@ -229,7 +233,8 @@ public class TelegramChartView extends LinearLayout {
 
 //            t = SystemClock.elapsedRealtime();
 
-        lineVisibilityAnimator.setValues(ymin_main, ymax_main, ymin_preview, ymax_preview, lineVisibilityState);
+        lineVisibilityAnimator.setValues(yLeftMin_main, yLeftMax_main, yRightMin_main, yRightMax_main, yLeftMin_preview,
+                yLeftMax_preview, yRightMin_preview, yRightMax_preview, lineVisibilityState);
         lineVisibilityAnimator.start();
 
 /*                ymin_main1 = startYRange[0];
@@ -323,18 +328,22 @@ public class TelegramChartView extends LinearLayout {
     private final @NotNull ValueAnimator.AnimatorUpdateListener lineVisibilityAnimatorUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
-            //Trace.beginSection("lineVisibility onAnimationUpdate");
-
 /*            if ((t + 15) > SystemClock.elapsedRealtime()) {
                 Log.d("TCV", String.format("skipped at %d < %d", SystemClock.elapsedRealtime(), t + 15));
                 return;
             }
             t = SystemClock.elapsedRealtime();*/
 
-            final int ymin_main = (int) animation.getAnimatedValue("ymin_main");
-            final int ymax_main = (int) animation.getAnimatedValue("ymax_main");
-            final int ymin_preview = (int) animation.getAnimatedValue("ymin_preview");
-            final int ymax_preview = (int) animation.getAnimatedValue("ymax_preview");
+            final int yLeftMin_main = (int) animation.getAnimatedValue("yLeftMin_main");
+            final int yLeftMax_main = (int) animation.getAnimatedValue("yLeftMax_main");
+            final int yRightMin_main = (int) animation.getAnimatedValue("yRightMin_main");
+            final int yRightMax_main = (int) animation.getAnimatedValue("yRightMax_main");
+
+            final int yLeftMin_preview = (int) animation.getAnimatedValue("yLeftMin_preview");
+            final int yLeftMax_preview = (int) animation.getAnimatedValue("yLeftMax_preview");
+            final int yRightMin_preview = (int) animation.getAnimatedValue("yRightMin_preview");
+            final int yRightMax_preview = (int) animation.getAnimatedValue("yRightMax_preview");
+
             final int lineVisibilityState = (int) animation.getAnimatedValue("lineVisibilityState");
             //Log.d("TCV", String.format("ymin_main = %d, ymax_main = %d, lineVisibilityState = %d", ymin_main, ymax_main, lineVisibilityState));
 
@@ -351,10 +360,8 @@ public class TelegramChartView extends LinearLayout {
             previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
                     lineVisibilityState, false, false);
 
-            mainChartView.setYRange(ymin_main, ymax_main, true);
-            previewChartView.setYRange(ymin_preview, ymax_preview, true);
-
-            //Trace.endSection();
+            mainChartView.setYRange(yLeftMin_main, yLeftMax_main, yRightMin_main, yRightMax_main, true);
+            previewChartView.setYRange(yLeftMin_preview, yLeftMax_preview, yRightMin_preview, yRightMax_preview, true);
         }
     };
 
@@ -382,8 +389,6 @@ public class TelegramChartView extends LinearLayout {
             linesNames[i] = new LineName(inputData.LinesNames[i], inputData.LinesColors[i]);
         }
 
-//        optInputData(inputData);
-
         mainChartView.setInputData(inputData, inputDataStats);
         previewChartView.setInputData(inputData, inputDataStats);
         lineNamesView.setLineNames(linesNames);
@@ -393,40 +398,8 @@ public class TelegramChartView extends LinearLayout {
 
         mainChartView.setXRange(zone[0], zone[1]);
 
-        mainChartView.getXRange(xRange);
-        updateXRangeText(xRange[0], xRange[1]);
-    }
-
-    private void optInputData(@NotNull ChartInputData inputData) {
-        final long[] originalXValues = new long[inputData.XValues.length];
-        System.arraycopy(inputData.XValues, 0, originalXValues, 0, inputData.XValues.length);
-
-        float tol;
-        //tol = (inputData.XValues[inputData.XValues.length - 1] - inputData.XValues[0]) / 10f;
-        tol = 20f;
-
-        for (int j = 0; j < inputData.LinesValues.length; j++) {
-            final float[][] f = new float[inputData.LinesValues[j].length][3];
-            int l = 0;
-            for (int i = 0; i < inputData.LinesValues[j].length; i++) {
-                f[l][0] = (float) originalXValues[i];
-                f[l][1] = inputData.LinesValues[j][i];
-                f[l][2] = 0;
-                l++;
-            }
-
-            final float[][] res = Simplify.simplify(f, tol, true);
-
-            Log.d("TCV", String.format("points %d -> %d", inputData.LinesValues[j].length, res.length));
-
-            inputData.XValues = new long[res.length];
-            inputData.LinesValues[j] = new int[res.length];
-
-            for (int i = 0; i < res.length; i++) {
-                inputData.XValues[i] = (long) (res[i][0]);
-                inputData.LinesValues[j][i] = (int) res[i][1];
-            }
-        }
+        mainChartView.getXRange(tmpXRange);
+        updateXRangeText(tmpXRange[0], tmpXRange[1]);
     }
 
     private void updateXRangeText(long xLeft, long xRight) {

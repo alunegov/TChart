@@ -69,9 +69,9 @@ public abstract class AbsChartView extends View {
 
             final int[] linesFadedColors = new int[inputData.LinesColors.length];
             for (int i = 0; i < inputData.LinesColors.length; i++) {
-                final int r = (int) (Color.red(barLinesMaskColor) * alpha + Color.red(inputData.LinesColors[i]) * (1 - alpha));
-                final int g = (int) (Color.green(barLinesMaskColor) * alpha + Color.green(inputData.LinesColors[i]) * (1 - alpha));
-                final int b = (int) (Color.blue(barLinesMaskColor) * alpha + Color.blue(inputData.LinesColors[i]) * (1 - alpha));
+                final int r = Math.round(Color.red(barLinesMaskColor) * alpha + Color.red(inputData.LinesColors[i]) * (1 - alpha));
+                final int g = Math.round(Color.green(barLinesMaskColor) * alpha + Color.green(inputData.LinesColors[i]) * (1 - alpha));
+                final int b = Math.round(Color.blue(barLinesMaskColor) * alpha + Color.blue(inputData.LinesColors[i]) * (1 - alpha));
 
                 linesFadedColors[i] = Color.rgb(r, g, b);
             }
@@ -126,14 +126,14 @@ public abstract class AbsChartView extends View {
     private Executor executor = Executors.newSingleThreadExecutor();
     protected final @NotNull Object lock = new Object();
 
-    public void setYRange(int yMin, int yMax, boolean doUpdateAndInvalidate) {
+    public void setYRange(int yLeftMin, int yLeftMax, int yRightMin, int yRightMax, boolean doUpdateAndInvalidate) {
         if (drawData == null) {
             return;
         }
 
 //        executor.execute(new QQ(yMin, yMax, doUpdateAndInvalidate));
 
-        drawData.setYRange(yMin, yMax);
+        drawData.setYRange(yLeftMin, yLeftMax, yRightMin, yRightMax);
 
         if (doUpdateAndInvalidate) {
             invalidate();
@@ -141,7 +141,7 @@ public abstract class AbsChartView extends View {
         }
     }
 
-    private class QQ implements Runnable {
+/*    private class QQ implements Runnable {
         int yMin;
         int yMax;
         boolean doUpdateAndInvalidate;
@@ -167,7 +167,7 @@ public abstract class AbsChartView extends View {
                 }
             }
         }
-    }
+    }*/
 
     private void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
         drawData.calcYRangeAt(xLeftValue, xRightValue, inputDataStats.getLinesVisibilityState(), range);
@@ -201,14 +201,14 @@ public abstract class AbsChartView extends View {
         calcYRangeAt(zoneLeftValue, zoneRightValue, yStopRange);
     }
 
-    private final @NotNull float[] xRange = new float[2];
+    private final @NotNull float[] tmpXRange = new float[2];
 
     // при включении/выключении графика
     public void calcAnimationRanges(int lineIndex, boolean exceptLine, int state, @NotNull int[] yStartRange, @NotNull int[] yStopRange) {
         drawData.getYRange(yStartRange);
 
-        drawData.getXRange(xRange);
-        calcYRangeAt(xRange[0], xRange[1], lineIndex, exceptLine, state, yStopRange);
+        drawData.getXRange(tmpXRange);
+        calcYRangeAt(tmpXRange[0], tmpXRange[1], lineIndex, exceptLine, state, yStopRange);
     }
 
     protected void drawLines(@NotNull Canvas canvas) {
@@ -296,7 +296,7 @@ public abstract class AbsChartView extends View {
     private final @NotNull float[] a2 = new float[500 * 4];
 
     protected void drawLines2(@NotNull Canvas canvas) {
-        final Matrix matrix = drawData.getMatrix();
+        final Matrix matrix = drawData.getMatrixLeft();
 
         drawData.getXRange(xIndexRange);
         final int linePtsCount = xIndexRange[1] - xIndexRange[0] + 1;
