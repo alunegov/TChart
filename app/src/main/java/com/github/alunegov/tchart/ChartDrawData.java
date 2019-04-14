@@ -6,7 +6,6 @@ import android.graphics.RectF;
 
 import java.util.*;
 
-import android.util.Log;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,8 +18,11 @@ public class ChartDrawData {
     private int axisLineCount;
     // Преобразователь значения в текст для оцифровки оси X
     private AxisTextConverter xAxisTextCnv;
+    //
+    private boolean mYRangeEnlarging;
     // режим нижней границы Y
-    private YMinMode yMinMode = YMinMode.RANGE;
+    private YMinMode yMinMode;
+    private DrawLinesMode drawLinesMode;
     // область отображения графика
     private RectF area = new RectF();
     // флаг: область отображения графика задана
@@ -46,13 +48,35 @@ public class ChartDrawData {
 
     private RectF[][] linesRects;
 
+    private float[] mTmpStackedSum;
+
     public ChartDrawData(@NotNull ChartInputData inputData, @NotNull ChartInputDataStats inputDataStats) {
         this.inputData = inputData;
         this.inputDataStats = inputDataStats;
 
-        if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
-            yMinMode = YMinMode.ZERO;
+        switch (inputData.linesType) {
+            case LINE:
+                yMinMode = YMinMode.RANGE;
+                break;
+            case BAR:
+            case AREA:
+                yMinMode = YMinMode.ZERO;
+                break;
         }
+
+        switch (inputData.linesType) {
+            case LINE:
+                drawLinesMode = DrawLinesMode.LINES;
+                break;
+            case BAR:
+                drawLinesMode = DrawLinesMode.PATH_REVERSE;
+                break;
+            case AREA:
+                drawLinesMode = DrawLinesMode.PATH_REVERSE;
+                break;
+        }
+
+        // TODO: выделять память только под нужный режим отрисовки drawLinesMode
 
         linesPaths = new Path[inputData.LinesValues.length];
         for (int i = 0; i < linesPaths.length; i++) {
@@ -69,6 +93,8 @@ public class ChartDrawData {
                 linesRects[i][j] = new RectF();
             }
         }
+
+        mYRangeEnlarging = false;
     }
 
     public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextCnv) {
@@ -77,6 +103,14 @@ public class ChartDrawData {
 
         xAxisMarks = new ArrayList<>();
         yAxisMarks = new ArrayList<>();
+    }
+
+    public void enableYRangeEnlarging() {
+        mYRangeEnlarging = true;
+    }
+
+    public DrawLinesMode getDrawLinesMode() {
+        return drawLinesMode;
     }
 
     public @NotNull RectF getArea() {
@@ -133,11 +167,7 @@ public class ChartDrawData {
         }
     }
 
-    public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate) {
-        if ((lineIndex < 0) || (inputData.LinesValues.length <= lineIndex)) {
-            return;
-        }
-
+    public void updateLineVisibility(boolean doUpdate) {
         if (doUpdate) {
             updateYRange();
             updateScalesAndMatrix();
@@ -182,11 +212,13 @@ public class ChartDrawData {
 
         // добавляем к минимуму/максимуму часть размаха, чтобы снизу/сверху было немного места (так на ref, была видна пометка точки)
         // TODO: добавлять к минимуму не просто "часть размаха", а так, чтобы первая линия оцифровки была в "нулевом пикселе"
-        final int yDelta = (int) (0.05 * (yMaxAt - yMinAt));
-        if (yMinAt != 0) {
-            yMinAt -= yDelta;
+        if (mYRangeEnlarging) {
+            final int yDelta = (int) (0.05 * (yMaxAt - yMinAt));
+            if (yMinAt != 0) {
+                yMinAt -= yDelta;
+            }
+            yMaxAt += yDelta;
         }
-        yMaxAt += yDelta;
 
         range[0] = yMinAt;
         range[1] = yMaxAt;
@@ -246,8 +278,8 @@ public class ChartDrawData {
         matrix.postTranslate(xToPixelHelper, yToPixelHelper);
     }
 
-    boolean b1 = false;
-    boolean b2 = false;
+//    private boolean b1 = false;
+//    private boolean b2 = false;
 
     private void updateLinesAndAxis() {
         if (!areaSet) {
@@ -257,50 +289,72 @@ public class ChartDrawData {
             return;
         }
 
-        //if (!b1) {
-            //b1 = true;
-
+//        if (!b1) {
+//            b1 = true;
             updateLines();
-        //}
+//        }
 
-        //if (!b2) {
-            //b2 = true;
-
+//        if (!b2) {
+//            b2 = true;
             updateAxisMarks();
-        //}
+//        }
     }
 
     private void updateLines() {
+        switch (inputData.linesType) {
+            case LINE:
+                //updateLines_LINE_Path();
+                //updateLines_LINE_Lines();
+                updateLines_LINE_Lines_Matrix();
+                break;
+
+            case BAR:
+                //updateLines_BAR_Rect();
+                updateLines_BAR_Path_Matrix();
+                break;
+
+            case AREA:
+                //updateLines_AREA_Rect();
+                //updateLines_AREA_Path();
+                updateLines_AREA_Path_Matrix();
+                break;
+        }
+    }
+
+    private void updateLines_LINE_Path() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
 
-/*        //
+        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+
         for (int j = 0; j < linesPaths.length; j++) {
             linesPaths[j].reset();
 
-            // don't calc invisible lines
-            if (invisibleLinesIndexes.contains(j)) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
             linesPaths[j].moveTo(
-                    //xToPixel(inputData.XValues[xLeftIndex]),
                     xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
-                    //yToPixel(inputData.LinesValues[j][xLeftIndex])
                     yToPixelHelper - inputData.LinesValues[j][xLeftIndex] * scaleY
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linesPaths[j].lineTo(
-                        //xToPixel(inputData.XValues[i]),
                         xToPixelHelper + inputData.XValues[i] * scaleX,
-                        //yToPixel(inputData.LinesValues[j][i])
                         yToPixelHelper - inputData.LinesValues[j][i] * scaleY
                 );
             }
-        }*/
+        }
+    }
 
-/*        for (int j = 0; j < linesLines.length; j++) {
-            // don't calc invisible lines
-            if (invisibleLinesIndexes.contains(j)) {
+    private void updateLines_LINE_Lines() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+
+        for (int j = 0; j < linesLines.length; j++) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
@@ -320,121 +374,350 @@ public class ChartDrawData {
             lineLines[k] = xToPixelHelper + inputData.XValues[xRightIndex] * scaleX;
             lineLines[k + 1] = yToPixelHelper - inputData.LinesValues[j][xRightIndex] * scaleY;
 
-//            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4)) throw new AssertionError();
-        }*/
+            if (BuildConfig.DEBUG && ((k + 2) != (xRightIndex - xLeftIndex + 1 - 1) * 4)) throw new AssertionError();
+        }
+    }
+
+    private void updateLines_LINE_Lines_Matrix() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        int linePtsCount = xRightIndex - xLeftIndex + 1;
+
+        linePtsCount = (linePtsCount - 1) << 1;
+
+        for (int j = 0; j < linesLines.length; j++) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            int k = 0;
+            pts[k] = inputData.XValues[xLeftIndex];
+            pts[k + 1] = inputData.LinesValues[j][xLeftIndex];
+            k += 2;
+            for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
+                pts[k] = inputData.XValues[i];
+                pts[k + 1] = inputData.LinesValues[j][i];
+                pts[k + 2] = pts[k];
+                pts[k + 3] = pts[k + 1];
+                k += 4;
+            }
+            pts[k] = inputData.XValues[xRightIndex];
+            pts[k + 1] = inputData.LinesValues[j][xRightIndex];
+
+            matrix.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
+
+            if (BuildConfig.DEBUG && ((k + 2) != linePtsCount * 2)) throw new AssertionError();
+        }
+    }
+
+    private void updateLines_BAR_Rect() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        final int ptsCount = xRightIndex - xLeftIndex + 1;
+        final float rectWidth = area.width() / ptsCount;
+        //Log.d("CDD", String.format("ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+
+        int l = -1;
+        for (int j = 0; j < linesLines.length; j++) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            final RectF[] lineRects = linesRects[j];
+
+            final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+            if (l == -1) {
+                for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                    lineRects[i].left = xToPixel(inputData.XValues[i]);
+                    lineRects[i].top = yToPixel(inputData.LinesValues[j][i] * lineK);
+                    lineRects[i].bottom = area.bottom;
+                }
+            } else {
+                final RectF[] prevLineRects = linesRects[l];
+
+                for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                    lineRects[i].left = prevLineRects[i].left;
+                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK) * scaleY;
+                    lineRects[i].bottom = prevLineRects[i].top;
+                }
+            }
+            l = j;
+
+            lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
+            for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                lineRects[i - 1].right = lineRects[i].left;
+            }
+            lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
+        }
+    }
+
+    private void updateLines_BAR_Path_Matrix() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        final int[] stackedSum = inputDataStats.getStackedSum();
+        assert stackedSum != null;
+
+        final @NotNull float[] tmpStackedSum = getTmpStackedSum();
+        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+            tmpStackedSum[i] = 0;
+        }
+
+        final int ptsCount = xRightIndex - xLeftIndex + 1;
+        final float rectWidth = (xRightValue - xLeftValue) / ptsCount;
+        //Log.d("CDD", String.format("ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+
+        float prevMin = yMin;
+        float currMin;
+
+        for (int j = 0; j < linesLines.length; j++) {
+            final Path linePath = linesPaths[j];
+
+            linePath.reset();
+
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+            currMin = yMax;
+
+            for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                tmpStackedSum[i] += inputData.LinesValues[j][i] * lineK;
+
+                if (tmpStackedSum[i] < currMin) {
+                    currMin = tmpStackedSum[i];
+                }
+            }
+
+            linePath.moveTo(
+                    inputData.XValues[xLeftIndex],
+                    tmpStackedSum[xLeftIndex]
+            );
+            linePath.lineTo(
+                    inputData.XValues[xLeftIndex] + rectWidth,
+                    tmpStackedSum[xLeftIndex]
+            );
+            for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                linePath.lineTo(
+                        inputData.XValues[i],
+                        tmpStackedSum[i]
+                );
+                linePath.lineTo(
+                        inputData.XValues[i] + rectWidth,
+                        tmpStackedSum[i]
+                );
+            }
+
+            // right |
+            linePath.lineTo(
+                    inputData.XValues[xRightIndex] + rectWidth,
+                    prevMin
+            );
+            // _
+            linePath.lineTo(
+                    inputData.XValues[xLeftIndex],
+                    prevMin
+            );
+            // left |
+            linePath.close();
+
+            linePath.transform(matrix);
+
+            prevMin = currMin;
+        }
+    }
+
+    private void updateLines_AREA_Rect() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        final int[] stackedSum = inputDataStats.getStackedSum();
+        assert stackedSum != null;
 
         int linePtsCount = xRightIndex - xLeftIndex + 1;
 
         final float rectWidth = area.width() / linePtsCount;
         //Log.d("CDD", String.format("linePtsCount = %d, rectWidth = %f", linePtsCount, rectWidth));
 
-        int l;
+        int l = -1;
+        for (int j = 0; j < linesLines.length; j++) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
 
-        switch (inputData.linesType) {
-            case LINE:
-                linePtsCount = (linePtsCount - 1) << 1;
+            final RectF[] lineRects = linesRects[j];
+            final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
 
-                for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                        continue;
-                    }
-
-                    int k = 0;
-                    pts[k] = inputData.XValues[xLeftIndex];
-                    pts[k + 1] = inputData.LinesValues[j][xLeftIndex];
-                    k += 2;
-                    for (int i = xLeftIndex + 1; i < xRightIndex; i++) {
-                        pts[k] = inputData.XValues[i];
-                        pts[k + 1] = inputData.LinesValues[j][i];
-                        pts[k + 2] = pts[k];
-                        pts[k + 3] = pts[k + 1];
-                        k += 4;
-                    }
-                    pts[k] = inputData.XValues[xRightIndex];
-                    pts[k + 1] = inputData.LinesValues[j][xRightIndex];
-
-                    matrix.mapPoints(linesLines[j], 0, pts, 0, linePtsCount);
-
-                    if (BuildConfig.DEBUG && ((k + 2) != linePtsCount * 2)) throw new AssertionError();
+            if (l == -1) {
+                for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                    lineRects[i].left = xToPixel(inputData.XValues[i]);
+                    lineRects[i].top = yToPixel(inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f);
+                    lineRects[i].bottom = area.bottom;
                 }
+            } else {
+                final RectF[] prevLineRects = linesRects[l];
 
-                break;
-
-            case BAR:
-                l = -1;
-                for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                        continue;
-                    }
-
-                    final RectF[] lineRects = linesRects[j];
-                    final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
-                    
-                    if (l == -1) {
-                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
-                            lineRects[i].left = xToPixel(inputData.XValues[i]);
-                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK));
-                            lineRects[i].bottom = area.bottom;
-                        }
-                    } else {
-                        final RectF[] prevLineRects = linesRects[l];
-
-                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
-                            lineRects[i].left = prevLineRects[i].left;
-                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK)) * scaleY;
-                            lineRects[i].bottom = prevLineRects[i].top;
-                        }
-                    }
-                    l = j;
-
-                    lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
-                    for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
-                        lineRects[i - 1].right = lineRects[i].left;
-                    }
-                    lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
+                for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                    lineRects[i].left = prevLineRects[i].left;
+                    lineRects[i].top = prevLineRects[i].top - (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f) * scaleY;
+                    lineRects[i].bottom = prevLineRects[i].top;
                 }
+            }
+            l = j;
 
-                break;
-
-            case AREA:
-                final int[] stackedSum = inputDataStats.getStackedSum();
-                assert stackedSum != null;
-
-                l = -1;
-                for (int j = 0; j < linesLines.length; j++) {
-                    if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                        continue;
-                    }
-
-                    final RectF[] lineRects = linesRects[j];
-                    final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
-
-                    if (l == -1) {
-                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
-                            lineRects[i].left = xToPixel(inputData.XValues[i]);
-                            lineRects[i].top = yToPixel((int) (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f));
-                            lineRects[i].bottom = area.bottom;
-                        }
-                    } else {
-                        final RectF[] prevLineRects = linesRects[l];
-
-                        for (int i = xLeftIndex; i <= xRightIndex; i++) {
-                            lineRects[i].left = prevLineRects[i].left;
-                            lineRects[i].top = prevLineRects[i].top - ((int) (inputData.LinesValues[j][i] * lineK / stackedSum[i] * 100f)) * scaleY;
-                            lineRects[i].bottom = prevLineRects[i].top;
-                        }
-                    }
-                    l = j;
-
-                    lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
-                    for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
-                        lineRects[i - 1].right = lineRects[i].left;
-                    }
-                    lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
-                }
-
-                break;
+            lineRects[xLeftIndex].right = lineRects[xLeftIndex].left + rectWidth;
+            for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                lineRects[i - 1].right = lineRects[i].left;
+            }
+            lineRects[xRightIndex].right = lineRects[xRightIndex].left + rectWidth;
         }
+    }
+
+    private void updateLines_AREA_Path() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        final int[] stackedSum = inputDataStats.getStackedSum();
+        assert stackedSum != null;
+
+        final @NotNull float[] tmpStackedSum = getTmpStackedSum();
+        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+            tmpStackedSum[i] = 0;
+        }
+
+        final float xToPixelHelper = area.left/* + x * scaleX*/ - xLeftValue * scaleX;
+        final float yToPixelHelper = area.bottom/* - y * scaleY*/ + yMin * scaleY;
+
+        for (int j = 0; j < linesLines.length; j++) {
+            final Path linePath = linesPaths[j];
+
+            linePath.reset();
+
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+            for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                tmpStackedSum[i] += inputData.LinesValues[j][i] * lineK;
+
+            }
+
+            linePath.moveTo(
+                    xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
+                    yToPixelHelper - (tmpStackedSum[xLeftIndex] / stackedSum[xLeftIndex] * 100f) * scaleY
+            );
+            for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                linePath.lineTo(
+                        xToPixelHelper + inputData.XValues[i] * scaleX,
+                        yToPixelHelper - (tmpStackedSum[i] / stackedSum[i] * 100f) * scaleY
+                );
+            }
+
+            // right |
+            linePath.lineTo(
+                    xToPixelHelper + inputData.XValues[xRightIndex] * scaleX,
+                    yToPixelHelper - yMin * scaleY
+            );
+            // _
+            linePath.lineTo(
+                    xToPixelHelper + inputData.XValues[xLeftIndex] * scaleX,
+                    yToPixelHelper - yMin * scaleY
+            );
+            // left |
+            linePath.close();
+        }
+    }
+
+    private void updateLines_AREA_Path_Matrix() {
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+
+        int lastVisibleLineIndex = -1;
+        for (int j = linesLines.length - 1; j >= 0; j--) {
+            if (linesVisibilityState[j] != ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                lastVisibleLineIndex = j;
+                break;
+            }
+        }
+
+        final int[] stackedSum = inputDataStats.getStackedSum();
+        assert stackedSum != null;
+
+        final @NotNull float[] tmpStackedSum = getTmpStackedSum();
+        for (int i = xLeftIndex; i <= xRightIndex; i++) {
+            tmpStackedSum[i] = 0;
+        }
+
+        float prevPercMin = 0f;
+
+        for (int j = 0; j < linesLines.length; j++) {
+            final Path linePath = linesPaths[j];
+
+            linePath.reset();
+
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            float currPercMin = 100f;
+
+            if (j != lastVisibleLineIndex) {
+                final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+                for (int i = xLeftIndex; i <= xRightIndex; i++) {
+                    tmpStackedSum[i] += inputData.LinesValues[j][i] * lineK;
+
+                    final float perc = tmpStackedSum[i] / stackedSum[i] * 100f;
+                    if (perc < currPercMin) {
+                        currPercMin = perc;
+                    }
+                }
+
+                linePath.moveTo(
+                        inputData.XValues[xLeftIndex],
+                        tmpStackedSum[xLeftIndex] / stackedSum[xLeftIndex] * 100f
+                );
+                for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
+                    linePath.lineTo(
+                            inputData.XValues[i],
+                            tmpStackedSum[i] / stackedSum[i] * 100f
+                    );
+                }
+
+                // right |
+                linePath.lineTo(
+                        inputData.XValues[xRightIndex],
+                        prevPercMin
+                );
+                // _
+                linePath.lineTo(
+                        inputData.XValues[xLeftIndex],
+                        prevPercMin
+                );
+                // left |
+                linePath.close();
+            } else {
+                linePath.addRect(
+                        inputData.XValues[xLeftIndex],
+                        currPercMin,
+                        inputData.XValues[xRightIndex],
+                        prevPercMin,
+                        Path.Direction.CW
+                );
+            }
+
+            linePath.transform(matrix);
+
+            prevPercMin = currPercMin;
+        }
+    }
+
+    private @NotNull float[] getTmpStackedSum() {
+        if (mTmpStackedSum == null) {
+            mTmpStackedSum = new float[inputData.XValues.length];
+        }
+        return mTmpStackedSum;
     }
 
     public @NotNull Matrix getMatrix() {
@@ -477,13 +760,9 @@ public class ChartDrawData {
         return (px - area.left) / scaleX + xLeftValue;
     }
 
-    public float yToPixel(int y) {
+    public float yToPixel(float y) {
         return area.bottom - (y - yMin) * scaleY;
     }
-
-    /*public float pixelToY(float py) {
-        return py / scaleY + yMin;
-    }*/
 
     private boolean getIsMarksUpdating() {
         return (axisLineCount > 0) && (xAxisTextCnv != null);
@@ -599,6 +878,13 @@ public class ChartDrawData {
         RANGE,
         // нулевое значение
         ZERO,
+    }
+
+    public enum DrawLinesMode {
+        PATH,
+        PATH_REVERSE,
+        LINES,
+        RECT,
     }
 
     public interface AxisTextConverter {

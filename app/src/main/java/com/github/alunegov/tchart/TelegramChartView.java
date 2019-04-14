@@ -106,7 +106,7 @@ public class TelegramChartView extends LinearLayout {
     private final PreviewChartView.OnChangeListener previewChartChangeListener = new PreviewChartView.OnChangeListener() {
         @Override
         public void onZoneChanged(float zoneLeftValue, float zoneRightValue) {
-//            mainChartView.setXRange(zoneLeftValue, zoneRightValue);
+            //mainChartView.setXRange(zoneLeftValue, zoneRightValue);
 
             //zoneChangeAnimator.cancel();
 

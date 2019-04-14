@@ -33,7 +33,8 @@ public abstract class AbsChartView extends View {
 
     // настройки отрисовки линий
     protected Paint[] linesPaints;
-    protected Paint[] linesFadedPaints;
+    // настройки отрисовки линий, которые не под курсором
+    private Paint[] linesFadedPaints;
 
     protected boolean horizontalMovement = false;
 
@@ -53,19 +54,24 @@ public abstract class AbsChartView extends View {
         drawData.setXRange(inputData.XValues[0], inputData.XValues[inputData.XValues.length - 1], true);
 
         linesPaints = ChartUtils.makeLinesPaints(inputData.LinesColors, lineWidth, inputData.linesType == ChartInputData.LineType.LINE);
+/*        if (inputData.linesType == ChartInputData.LineType.AREA) {
+            for (int i = 0; i < linesPaints.length; i++) {
+                linesPaints[i].setAntiAlias(true);
+            }
+        }*/
 
         if (inputData.linesType == ChartInputData.LineType.BAR) {
-            final int[] linesFadedColors = new int[inputData.LinesColors.length];
-
             final int barLinesMaskColor = ChartUtils.getThemedColor(getContext(), R.attr.tchart_bars_mask_color, BAR_LINES_MASK_COLOR);
 
             // https://www.wikiwand.com/en/Alpha_compositing#Alpha_blending
+            // transparent SRC over opaque DST: OUTrgb = SRCrgb * SRCa + DSTrgb * (1 - SRCa)
             final float alpha = Color.alpha(barLinesMaskColor) / 255f;
 
+            final int[] linesFadedColors = new int[inputData.LinesColors.length];
             for (int i = 0; i < inputData.LinesColors.length; i++) {
-                final int r = (int) (alpha * Color.red(barLinesMaskColor) + Color.red(inputData.LinesColors[i]) * (1 - alpha));
-                final int g = (int) (alpha * Color.green(barLinesMaskColor) + Color.green(inputData.LinesColors[i]) * (1 - alpha));
-                final int b = (int) (alpha * Color.blue(barLinesMaskColor) + Color.blue(inputData.LinesColors[i]) * (1 - alpha));
+                final int r = (int) (Color.red(barLinesMaskColor) * alpha + Color.red(inputData.LinesColors[i]) * (1 - alpha));
+                final int g = (int) (Color.green(barLinesMaskColor) * alpha + Color.green(inputData.LinesColors[i]) * (1 - alpha));
+                final int b = (int) (Color.blue(barLinesMaskColor) * alpha + Color.blue(inputData.LinesColors[i]) * (1 - alpha));
 
                 linesFadedColors[i] = Color.rgb(r, g, b);
             }
@@ -90,7 +96,7 @@ public abstract class AbsChartView extends View {
                 return;
             }
 
-            drawData.updateLineVisibility(lineIndex, exceptLine, state, doUpdate);
+            drawData.updateLineVisibility(doUpdate);
 
             if (inputData.linesType == ChartInputData.LineType.LINE) {
                 if (exceptLine) {
@@ -211,23 +217,43 @@ public abstract class AbsChartView extends View {
 
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
 
-/*        //
-        final Path[] paths = drawData.getLinesPaths();
-        if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
-        for (int i = 0; i < paths.length; i++) {
-            if (linesVisibilityState[i] == ChartDrawData.VISIBILITY_STATE_OFF) {
-                continue;
-            }
-
-            canvas.drawPath(paths[i], linesPaints[i]);
-        }*/
-
-        //
         drawData.getXRange(xIndexRange);
-        int pointsCount = xIndexRange[1] - xIndexRange[0] + 1;
 
-        switch (inputData.linesType) {
-            case LINE:
+        final Path[] paths;
+        int pointsCount;
+
+        switch (drawData.getDrawLinesMode()) {
+            case PATH:
+                paths = drawData.getLinesPaths();
+                if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
+
+                for (int i = 0; i < paths.length; i++) {
+                    if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    canvas.drawPath(paths[i], linesPaints[i]);
+                }
+
+                break;
+
+            case PATH_REVERSE:
+                paths = drawData.getLinesPaths();
+                if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
+
+                for (int i = paths.length - 1; i >= 0; i--) {
+                    if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                        continue;
+                    }
+
+                    canvas.drawPath(paths[i], linesPaints[i]);
+                }
+
+                break;
+
+            case LINES:
+                pointsCount = xIndexRange[1] - xIndexRange[0] + 1;
+
                 pointsCount = (pointsCount - 1) << 2;
 
                 final float[][] lines = drawData.getLinesLines();
@@ -238,16 +264,12 @@ public abstract class AbsChartView extends View {
                         continue;
                     }
 
-                    //if (BuildConfig.DEBUG && (lines[i].length != pointsCount)) throw new AssertionError();
-                    //canvas.drawLines(lines[i], linesPaints[i]);
-
                     canvas.drawLines(lines[i], 0, pointsCount, linesPaints[i]);
                 }
 
                 break;
 
-            case BAR:
-            case AREA:  // TODO: убрать ChartInputData.LineType.AREA
+            case RECT:
                 final RectF[][] rects = drawData.getLinesRects();
                 if (BuildConfig.DEBUG && (rects.length != linesPaints.length)) throw new AssertionError();
 

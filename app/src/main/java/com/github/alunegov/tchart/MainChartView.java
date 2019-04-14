@@ -38,7 +38,7 @@ public class MainChartView extends AbsChartView {
 
     private static final int MARKER_RADIUS_DP = 4;
 
-    private static final int Y_AXIS_TEXT_VERTICAL_MARGIN_DP = 7;
+    private static final int Y_AXIS_TEXT_VERTICAL_MARGIN_DP = 5;
     private static final int X_AXIS_TEXT_VERTICAL_MARGIN_DP = 3;
 
     private GestureDetector gestureDetector;
@@ -132,6 +132,7 @@ public class MainChartView extends AbsChartView {
         super.setInputData(inputData, inputDataStats);
 
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
+        drawData.enableYRangeEnlarging();
 
         if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
             xAxisTextPaint.setColor(barsXAxisTextColor);
@@ -281,12 +282,12 @@ public class MainChartView extends AbsChartView {
         if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
-        final boolean simpleStacked = simpleStacked();
-        final boolean percentageStacked = percentageStacked();
+        final boolean showAll = (inputData.linesType == ChartInputData.LineType.BAR) && (inputData.LinesValues.length > 1);
+        final boolean showPercentage = inputData.linesType == ChartInputData.LineType.AREA;
 
         int visibleLinesCount = inputDataStats.getVisibleLinesCount();
         // с учётом суммы всех значений
-        if (simpleStacked) {
+        if (showAll) {
             visibleLinesCount++;
         }
         final boolean recreate = visibleLinesCount != cursorValuesLayout.getChildCount();
@@ -306,7 +307,7 @@ public class MainChartView extends AbsChartView {
 
                 final View view = inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, false);
 
-                if (percentageStacked) {
+                if (showPercentage) {
                     final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
                     percentTextView.setVisibility(VISIBLE);
                 }
@@ -315,7 +316,7 @@ public class MainChartView extends AbsChartView {
             }
 
             // для суммы всех значений
-            if (simpleStacked) {
+            if (showAll) {
                 inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
             }
         }
@@ -335,7 +336,7 @@ public class MainChartView extends AbsChartView {
             updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]),
                     inputData.LinesColors[i], linesVisibilityState[i], recreate);
 
-            if (percentageStacked) {
+            if (showPercentage) {
                 final int[] stackedSum = inputDataStats.getStackedSum();
                 assert stackedSum != null;
 
@@ -349,7 +350,7 @@ public class MainChartView extends AbsChartView {
             }
         }
         // сумма всех значений
-        if (simpleStacked) {
+        if (showAll) {
             if (BuildConfig.DEBUG && (k != (cursorValuesLayout.getChildCount() - 1))) throw new AssertionError();
 
             int sum = 0;
@@ -366,14 +367,6 @@ public class MainChartView extends AbsChartView {
             // TODO: theme color
             updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK, ChartInputDataStats.VISIBILITY_STATE_ON, recreate);
         }
-    }
-
-    private boolean simpleStacked() {
-        return inputData.linesType == ChartInputData.LineType.BAR;
-    }
-
-    private boolean percentageStacked() {
-        return inputData.linesType == ChartInputData.LineType.AREA;
     }
 
     private void updateCursorPopupValueText(View view, @NotNull String name, @NotNull String value, int color,

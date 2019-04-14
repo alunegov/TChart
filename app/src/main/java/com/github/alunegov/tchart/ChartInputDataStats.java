@@ -85,7 +85,7 @@ public class ChartInputDataStats {
             final float lineK = (float) linesVisibilityState[j] / VISIBILITY_STATE_ON;
 
             for (int i = 0; i < inputData.XValues.length; i++) {
-                sum[i] += (int) (inputData.LinesValues[j][i] * lineK);
+                sum[i] += (int) (inputData.LinesValues[j][i] * lineK);  // TODO: float?
             }
         }
     }
