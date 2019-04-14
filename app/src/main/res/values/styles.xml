@@ -12,11 +12,12 @@
         <item name="tchart_bars_y_axis_text_color">@color/tchart_bars_y_axis_text_Light</item>
         <item name="tchart_bars_mask_color">@color/tchart_bars_mask_Light</item>
         <item name="tchart_axis_line_color">@color/tchart_axis_line_Light</item>
-        <item name="tchart_cursor_line_name_text_color">@color/tchart_cursor_line_name_text_color_Light</item>
+        <item name="tchart_cursor_popup_background_color">@color/tchart_cursor_popup_background_color_Light</item>
+        <item name="tchart_cursor_popup_border_color">@color/tchart_cursor_popup_border_color_Light</item>
+        <item name="tchart_cursor_popup_text_color">@color/tchart_cursor_popup_text_color_Light</item>
         <item name="tchart_preview_faded_color">@color/tchart_preview_faded_Light</item>
         <item name="tchart_preview_frame_color">@color/tchart_preview_frame_Light</item>
         <item name="app_background_color">@color/app_background_Light</item>
-        <item name="round_rect_shape">@drawable/round_rect_shape_light</item>
         <item name="mode_icon">@mipmap/mode_icon_2_light</item>
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
     </style>
@@ -33,11 +34,12 @@
         <item name="tchart_bars_y_axis_text_color">@color/tchart_bars_y_axis_text_Dark</item>
         <item name="tchart_bars_mask_color">@color/tchart_bars_mask_Dark</item>
         <item name="tchart_axis_line_color">@color/tchart_axis_line_Dark</item>
-        <item name="tchart_cursor_line_name_text_color">@color/tchart_cursor_line_name_text_color_Dark</item>
+        <item name="tchart_cursor_popup_background_color">@color/tchart_cursor_popup_background_color_Dark</item>
+        <item name="tchart_cursor_popup_border_color">@color/tchart_cursor_popup_border_color_Dark</item>
+        <item name="tchart_cursor_popup_text_color">@color/tchart_cursor_popup_text_color_Dark</item>
         <item name="tchart_preview_faded_color">@color/tchart_preview_faded_Dark</item>
         <item name="tchart_preview_frame_color">@color/tchart_preview_frame_Dark</item>
         <item name="app_background_color">@color/app_background_Dark</item>
-        <item name="round_rect_shape">@drawable/round_rect_shape_dark</item>
         <item name="mode_icon">@mipmap/mode_icon_2_dark</item>
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
     </style>
@@ -54,6 +56,7 @@
         <item name="android:theme">@style/ThemeOverlay.AppCompat.ActionBar</item>
         <item name="android:background">?attr/app_background_color</item>
         <item name="android:textColorPrimary">?attr/colorPrimary</item>
+        <item name="android:elevation">2dp</item>
     </style>
 
 </resources>

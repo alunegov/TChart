@@ -7,8 +7,6 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.*;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -34,7 +32,7 @@ public class MainChartView extends AbsChartView {
     private static final int AXIS_LINE_COLOR = Color.parseColor("#19182D3B");
     private static final float AXIS_LINE_WIDTH_DP = 1.0f;
 
-    private static final int CURSOR_POPUP_START_MARGIN_DP = 15;
+    private static final int CURSOR_POPUP_START_MARGIN_DP = 10;
 
     private static final int MARKER_RADIUS_DP = 4;
 
@@ -52,13 +50,9 @@ public class MainChartView extends AbsChartView {
     private float graphAreaHeight;
 
     // popup для отображения значений курсора
-    private View cursorPopupView;
-    private TextView cursorDateTextView;
-    private LinearLayout cursorValuesLayout;
+    private CursorPopupView cursorPopupView;
     // Преобразователь значения в текст для x-значений курсора
     private XAxisConverter cursorDateCnv;
-
-    private int barsXAxisTextColor, barsYAxisTextColor;
 
     // настройки отрисовки заполнения маркера курсора (чтобы получить заливку маркера цветом фона)
     private Paint linesMarkerFillPaint;
@@ -94,14 +88,12 @@ public class MainChartView extends AbsChartView {
         cursorDateCnv = new XAxisConverter(cursorDateFormatTemplate);
 
         final int axisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_text_color, AXIS_TEXT_COLOR);
-        barsXAxisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_bars_x_axis_text_color, AXIS_TEXT_COLOR);
-        barsYAxisTextColor = ChartUtils.getThemedColor(context, R.attr.tchart_bars_y_axis_text_color, AXIS_TEXT_COLOR);
         final int axisLineColor = ChartUtils.getThemedColor(context, R.attr.tchart_axis_line_color, AXIS_LINE_COLOR);
-        final int backColor = ChartUtils.getThemedColor(context, R.attr.app_background_color, Color.WHITE);
+        final int backgroundColor = ChartUtils.getThemedColor(context, R.attr.app_background_color, Color.WHITE);
 
         linesMarkerFillPaint = new Paint();
         linesMarkerFillPaint.setAntiAlias(true);
-        linesMarkerFillPaint.setColor(backColor);  // activity background as fill color
+        linesMarkerFillPaint.setColor(backgroundColor);
         linesMarkerFillPaint.setStyle(Paint.Style.FILL);
 
         xAxisTextPaint = new Paint();
@@ -153,32 +145,33 @@ public class MainChartView extends AbsChartView {
                 }
             }
         } else if (inputData.linesType == ChartInputData.LineType.BAR || inputData.linesType == ChartInputData.LineType.AREA) {
+            final int barsXAxisTextColor = ChartUtils.getThemedColor(getContext(), R.attr.tchart_bars_x_axis_text_color, AXIS_TEXT_COLOR);
+            final int barsYAxisTextColor = ChartUtils.getThemedColor(getContext(), R.attr.tchart_bars_y_axis_text_color, AXIS_TEXT_COLOR);
+
             xAxisTextPaint.setColor(barsXAxisTextColor);
             yLeftAxisTextPaint.setColor(barsYAxisTextColor);
             yRightAxisTextPaint.setColor(barsYAxisTextColor);
         }
 
-        //invalidate();
-    }
-
-    public void setCursorPopupView(View cursorPopupView) {
-        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
-
-        this.cursorPopupView = cursorPopupView;
-
-        cursorDateTextView = (TextView) cursorPopupView.findViewById(R.id.cursor_date);
-        cursorValuesLayout = (LinearLayout) cursorPopupView.findViewById(R.id.cursor_values);
-
-        this.cursorPopupView.setOnClickListener(new OnClickListener() {
+        cursorPopupView = new CursorPopupView(getContext(), inputData);
+        cursorPopupView.top = 0;
+        cursorPopupView.onChangeListener = new CursorPopupView.OnChangeListener() {
             @Override
-            public void onClick(View v) {
+            public void OnClick() {
                 cursorIndex = NO_CURSOR;
 
                 updateCursorPopup();
 
                 invalidate();
             }
-        });
+
+            @Override
+            public void OnCursorNextClick() {
+                // TODO
+            }
+        };
+
+        //invalidate();
     }
 
     public void setXRange(float xLeftValue, float xRightValue) {
@@ -187,8 +180,6 @@ public class MainChartView extends AbsChartView {
         }
 
         drawData.setXRange(xLeftValue, xRightValue, true);
-
-        updateCursorPopupPosition();
 
         invalidate();
         //postInvalidateDelayed(12);
@@ -201,8 +192,6 @@ public class MainChartView extends AbsChartView {
 
         drawData.setXRange(xLeftValue, xRightValue, false);
         drawData.setYRange(yLeftMin, yLeftMax, yRightMin, yRightMax);
-
-        updateCursorPopupPosition();
 
         invalidate();
         //postInvalidateDelayed(12);
@@ -223,6 +212,8 @@ public class MainChartView extends AbsChartView {
 
         if (BuildConfig.DEBUG && ((getWidth() != w) || (getHeight() != h))) throw new AssertionError();
         updateGraphAreaHeight();
+
+        //cursorPopupView.top = 0;
 
         //invalidate();
     }
@@ -287,155 +278,68 @@ public class MainChartView extends AbsChartView {
         if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
 
         if (cursorIndex == NO_CURSOR) {
-            cursorPopupView.setVisibility(GONE);
             return;
         }
-
-        updateCursorPopupValues();
-        updateCursorPopupPosition();
-    }
-
-    // создание списка видов в cursorPopupWindow со значениями курсора на видимых сигналах
-    private void updateCursorPopupValues() {
-        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
-        if (BuildConfig.DEBUG && (cursorIndex == NO_CURSOR)) throw new AssertionError();
 
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
         final boolean showAll = (inputData.linesType == ChartInputData.LineType.BAR) && (inputData.LinesValues.length > 1);
         final boolean showPercentage = inputData.linesType == ChartInputData.LineType.AREA;
 
-        int visibleLinesCount = inputDataStats.getVisibleLinesCount();
-        // с учётом суммы всех значений
-        if (showAll) {
-            visibleLinesCount++;
-        }
-        final boolean recreate = visibleLinesCount != cursorValuesLayout.getChildCount();
+        cursorPopupView.date = cursorDateCnv.toText(inputData.XValues[cursorIndex]);
 
-        if (recreate) {
-            //Log.d("MCV", "cursorValues recreated");
-
-            final LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            if (inflater == null) throw new AssertionError();
-
-            cursorValuesLayout.removeAllViews();
-
-            for (int i = 0; i < inputData.LinesValues.length; i++) {
-                if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                    continue;
-                }
-
-                final View view = inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, false);
-
-                if (showPercentage) {
-                    final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
-                    percentTextView.setVisibility(VISIBLE);
-                }
-
-                cursorValuesLayout.addView(view);
-            }
-
-            // для суммы всех значений
-            if (showAll) {
-                inflater.inflate(R.layout.view_cursor_value_list_item, cursorValuesLayout, true);
-            }
-        }
-
-        // дата
-        cursorDateTextView.setText(cursorDateCnv.toText(inputData.XValues[cursorIndex]));
-
-        // значения линий
-        int k = 0;
-        for (int i = 0; i < inputData.LinesValues.length; i++) {
-            if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+        cursorPopupView.linesValuesCount = 0;
+        for (int j = 0; j < inputData.LinesValues.length; j++) {
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
             }
 
-            final View view = cursorValuesLayout.getChildAt(k++);
-
-            updateCursorPopupValueText(view, inputData.LinesNames[i], String.valueOf(inputData.LinesValues[i][cursorIndex]),
-                    inputData.LinesColors[i], linesVisibilityState[i], recreate);
-
+            final String percent;
             if (showPercentage) {
                 final int[] stackedSum = inputDataStats.getStackedSum();
                 assert stackedSum != null;
 
-                final String s = String.format("%d%% ", Math.round(100f * inputData.LinesValues[i][cursorIndex] / stackedSum[cursorIndex]));
+                final float percentValue = (float) inputData.LinesValues[j][cursorIndex] / stackedSum[cursorIndex] * 100f;
 
-                final TextView percentTextView = (TextView) view.findViewById(R.id.cursor_percent);
-                if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_ON) {
-                    percentTextView.setText(s);
-                }
-                percentTextView.setScaleY((float) linesVisibilityState[i] / ChartInputDataStats.VISIBILITY_STATE_ON);
+                percent = String.format(Locale.getDefault(), "%d%%", Math.round(percentValue));
+            } else {
+                percent = "";
             }
+
+            CursorPopupView.LineValues lineValues = cursorPopupView.linesValues[cursorPopupView.linesValuesCount];
+            lineValues.name = inputData.LinesNames[j];
+            lineValues.value = String.format(Locale.getDefault(), "%,d", inputData.LinesValues[j][cursorIndex]);
+            lineValues.percent = percent;
+            lineValues.color = inputData.LinesColors[j];
+            lineValues.boldName = false;
+            lineValues.state = linesVisibilityState[j];
+
+            cursorPopupView.linesValuesCount++;
         }
         // сумма всех значений
         if (showAll) {
-            if (BuildConfig.DEBUG && (k != (cursorValuesLayout.getChildCount() - 1))) throw new AssertionError();
-
             int sum = 0;
             for (int i = 0; i < inputData.LinesValues.length; i++) {
                 if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                     continue;
                 }
 
-                sum += inputData.LinesValues[i][cursorIndex];
+                sum += inputData.LinesValues[i][cursorIndex] * linesVisibilityState[i] / ChartInputDataStats.VISIBILITY_STATE_ON;
             }
 
-            final View view = cursorValuesLayout.getChildAt(k);
+            final Context context = getContext();
 
-            // TODO: theme color
-            updateCursorPopupValueText(view, "All", String.valueOf(sum), Color.BLACK, ChartInputDataStats.VISIBILITY_STATE_ON, recreate);
-        }
-    }
+            CursorPopupView.LineValues lineValues = cursorPopupView.linesValues[cursorPopupView.linesValuesCount];
+            lineValues.name = context.getString(R.string.sum_line_name);
+            lineValues.value = String.format(Locale.getDefault(), "%,d", sum);
+            //lineValues.percent = ;
+            lineValues.color = ChartUtils.getThemedColor(context, R.attr.tchart_cursor_popup_text_color, Color.BLACK);
+            lineValues.boldName = true;
+            lineValues.state = ChartInputDataStats.VISIBILITY_STATE_ON;
 
-    private void updateCursorPopupValueText(View view, @NotNull String name, @NotNull String value, int color,
-                                            int state, boolean refill) {
-        if (BuildConfig.DEBUG && (view == null)) throw new AssertionError();
-
-        final float scale = (float) state / ChartInputDataStats.VISIBILITY_STATE_ON;
-        //@ColorInt int c = (color & 0x00ffffff) | (state << 24);
-
-        final TextView lineNameTextBox = (TextView) view.findViewById(R.id.cursor_line_name);
-        lineNameTextBox.setScaleY(scale);
-        if (refill) {
-            lineNameTextBox.setText(name);
-            //lineNameTextBox.setTextColor(lineColor);
+            cursorPopupView.linesValuesCount++;
         }
 
-        final TextView valueTextBox = (TextView) view.findViewById(R.id.cursor_value);
-        valueTextBox.setText(value);
-        valueTextBox.setScaleY(scale);
-        if (refill) {
-            valueTextBox.setTextColor(color);
-        }
-    }
-
-    private void updateCursorPopupPosition() {
-        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
-
-        if (cursorIndex == NO_CURSOR) {
-            cursorPopupView.setVisibility(GONE);
-            return;
-        }
-
-        int cursorX = Math.round(drawData.xToPixel(inputData.XValues[cursorIndex]));
-
-        final int viewRight = getRight();
-
-        if (cursorX < getLeft() || viewRight < cursorX) {
-            cursorPopupView.setVisibility(GONE);
-            return;
-        }
-
-        // TODO: rtl
-        cursorX += cursorPopupStartMargin;
-        if (cursorX + cursorPopupView.getWidth() > viewRight) {
-            cursorX = viewRight - cursorPopupView.getWidth();
-        }
-
-        cursorPopupView.setX(cursorX);
-
-        cursorPopupView.setVisibility(VISIBLE);
+        cursorPopupView.onLayout();
     }
 
     @Override
@@ -517,17 +421,19 @@ public class MainChartView extends AbsChartView {
             return;
         }
 
-        // в BAR не нужны ни линия, ни отметки точек
+        final float cursorX = drawData.xToPixel(inputData.XValues[cursorIndex]);
+
+        // в BAR не нужны ни линия, ни отметки точек, только tooltip
         if (inputData.linesType == ChartInputData.LineType.BAR) {
+            drawCursorPopup(canvas, cursorX);
             return;
         }
 
-        final float cursorX = drawData.xToPixel(inputData.XValues[cursorIndex]);
-
         canvas.drawLine(cursorX, 0, cursorX, graphAreaHeight, axisLinePaint);
 
-        // в AREA нужна только линия, без отметок точек
+        // в AREA нужна только линия и tooltip, без отметок точек
         if (inputData.linesType == ChartInputData.LineType.AREA) {
+            drawCursorPopup(canvas, cursorX);
             return;
         }
 
@@ -551,6 +457,35 @@ public class MainChartView extends AbsChartView {
             // заполнение маркера цветом фона
             canvas.drawCircle(cursorX, cursorY, markerFillRadius, linesMarkerFillPaint);
         }
+
+        // рисуем последним, что ничего его не перекрывало - ни графики, ни линия курсора, ни отметки точек
+        drawCursorPopup(canvas, cursorX);
+    }
+
+    private void drawCursorPopup(@NotNull Canvas canvas, float cursorX) {
+        if (BuildConfig.DEBUG && (cursorPopupView == null)) throw new AssertionError();
+
+        final int viewWidth = getWidth();
+
+        if (0 > cursorX || cursorX > viewWidth) {
+            return;
+        }
+
+        // TODO: rtl
+        float cursorPopupLeft = cursorX + cursorPopupStartMargin;
+
+        if (cursorPopupLeft + cursorPopupView.width > viewWidth) {
+            // выходит за правую границу экрана - размещаем слева от курсора
+            cursorPopupLeft = cursorX - cursorPopupStartMargin - cursorPopupView.width;
+
+            if (cursorPopupLeft < 0) {
+                // выходит за левую границу экрана - размещаем начиная от левой границы
+                cursorPopupLeft = 0;
+            }
+        }
+
+        cursorPopupView.left = cursorPopupLeft;
+        cursorPopupView.onDraw(canvas);
     }
 
     private class OnGestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -561,7 +496,13 @@ public class MainChartView extends AbsChartView {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            onCursorChanged(e.getX(), true);
+            if (inputDataStats.getVisibleLinesCount() > 0) {
+                if (cursorPopupView.onSingleTapUp(e)) {
+                    return true;
+                }
+
+                onCursorChanged(e.getX(), true);
+            }
 
             return true;
         }
@@ -579,7 +520,7 @@ public class MainChartView extends AbsChartView {
                 }
             }
 
-            if (horizontalMovement) {
+            if (horizontalMovement && (inputDataStats.getVisibleLinesCount() > 0)) {
                 onCursorChanged(e2.getX(), false);
             }
 

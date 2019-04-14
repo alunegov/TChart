@@ -60,14 +60,12 @@ public class TelegramChartView extends LinearLayout {
         titleView = (TextView) findViewById(R.id.title);
         xRangeView = (TextView) findViewById(R.id.x_range);
         mainChartView = (MainChartView) findViewById(R.id.main_chart);
-        final View cursorPopupView = findViewById(R.id.cursor_popup);
         previewChartView = (PreviewChartView) findViewById(R.id.preview_chart);
         lineNamesView = (LineNameListView) findViewById(R.id.line_names);
 
         final String xRangeDateFormatTemplate = ChartUtils.getXRangeDateFormatTemplate(context);
         xRangeTextConverter = new MainChartView.XAxisConverter(xRangeDateFormatTemplate);
 
-        mainChartView.setCursorPopupView(cursorPopupView);
         previewChartView.setOnChangeListener(previewChartChangeListener);
         lineNamesView.setOnChangeListener(lineNamesChangeListener);
 

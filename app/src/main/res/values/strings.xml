@@ -3,4 +3,5 @@
     <string name="dummy">dummy</string>
     <string name="activity_title">Statistics</string>
     <string name="chart_title_fmt">Chart #%d</string>
+    <string name="sum_line_name">All</string>
 </resources>
