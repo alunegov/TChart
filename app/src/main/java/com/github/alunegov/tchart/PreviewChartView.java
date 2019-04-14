@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 
@@ -349,7 +350,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private boolean updateCachedLines() {
-        //Log.d("PCV", "updateCachedLines");
+        Log.d("PCV", "updateCachedLines");
 
         if (getWidth() == 0 || getHeight() == 0) {
             cachedLines = null;
@@ -377,7 +378,7 @@ public class PreviewChartView extends AbsChartView {
                 return;
             }
 
-            drawLines(canvas);
+//            drawLines(canvas);
             drawLinesFade(canvas);
             drawFrame(canvas);
 //        }

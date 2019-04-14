@@ -41,6 +41,10 @@ public class ChartDrawData {
     // отображаемые данные линий (сигналов) в виде Path
     private Path[] linesPaths;
     private float[][] linesLines;
+    // предыдущее обсчитанное значение курсора - запоминается в updateCursorPaths, используется в updateLines_BAR_Path_Matrix
+    private int prevCursorIndex = AbsChartView.NO_CURSOR;
+    // путь для отрисовки курсора в режиме BAR/PATH_REVERSE - столбик с курсором рисуется поверх области сигналов, задаваемой linesPaths
+    private Path[] cursorPaths;
     // Метки для оцифровки осей
     private List<AxisMark> xAxisMarks, yAxisMarks;
 
@@ -86,6 +90,11 @@ public class ChartDrawData {
         }
 
         linesLines = new float[inputData.LinesValues.length][(inputData.XValues.length - 1) * 4];
+
+        cursorPaths = new Path[inputData.LinesValues.length];
+        for (int i = 0; i < cursorPaths.length; i++) {
+            cursorPaths[i] = new Path();
+        }
 
         pts = new float[(inputData.XValues.length - 1) * 4];
 
@@ -196,6 +205,58 @@ public class ChartDrawData {
         updateLinesAndAxis();
     }
 
+    // по аналогии с updateLines_BAR_Path_Matrix
+    public void updateCursorPaths(int cursorIndex) {
+        prevCursorIndex = cursorIndex;
+
+        if (cursorIndex == AbsChartView.NO_CURSOR || inputData.linesType != ChartInputData.LineType.BAR) {
+            for (int j = 0; j < cursorPaths.length; j++) {
+                cursorPaths[j].reset();
+            }
+            return;
+        }
+
+        final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
+        final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
+
+        float tmpStackedSum = 0;
+
+        final int ptsCount = xRightIndex - xLeftIndex + 1;
+        float rectWidth = (xRightValue - xLeftValue) / ptsCount;
+        rectWidth = (xRightValue + rectWidth - xLeftValue) / ptsCount;
+        Log.d("CDD", String.format("updateCursorPaths: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+
+        float prevMin = yLeftMin;
+
+        for (int j = 0; j < cursorPaths.length; j++) {
+            if (linesRightAlign[j]) throw new AssertionError();
+
+            final Path cursorPath = cursorPaths[j];
+
+            cursorPath.reset();
+
+            if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+            tmpStackedSum += inputData.LinesValues[j][cursorIndex] * lineK;
+
+            cursorPath.addRect(
+                    inputData.XValues[cursorIndex],
+                    tmpStackedSum,
+                    inputData.XValues[cursorIndex] + rectWidth,
+                    prevMin,
+                    Path.Direction.CW
+            );
+
+            cursorPath.transform(matrixLeft);
+
+            prevMin = tmpStackedSum;
+        }
+    }
+
     private final @NotNull int[] tmpYLeftMinMax = new int[2];
     private final @NotNull int[] tmpYRightMinMax = new int[2];
 //    private final @NotNull YAxisMarksHelper tmpYMarksHelper = new YAxisMarksHelper();
@@ -276,6 +337,10 @@ public class ChartDrawData {
 
     public @NotNull float[][] getLinesLines() {
         return linesLines;
+    }
+
+    public @NotNull Path[] getCursorPaths() {
+        return cursorPaths;
     }
 
     public @NotNull RectF[][] getLinesRects() {
@@ -466,7 +531,7 @@ public class ChartDrawData {
 
         final int ptsCount = xRightIndex - xLeftIndex + 1;
         final float rectWidth = area.width() / ptsCount;
-        //Log.d("CDD", String.format("ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+        //Log.d("CDD", String.format("updateLines_BAR_Rect: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
 
         int l = -1;
         for (int j = 0; j < linesLines.length; j++) {
@@ -505,12 +570,10 @@ public class ChartDrawData {
         }
     }
 
+    // обновление курсора по аналогии с updateCursorPaths, предыдущее обсчитанное значение курсора запоминается там-же
     private void updateLines_BAR_Path_Matrix() {
         final int[] linesVisibilityState = inputDataStats.getLinesVisibilityState();
         final boolean[] linesRightAlign = inputDataStats.getLinesRightAlign();
-
-        final int[] stackedSum = inputDataStats.getStackedSum();
-        assert stackedSum != null;
 
         final @NotNull float[] tmpStackedSum = getTmpStackedSum();
         for (int i = xLeftIndex; i <= xRightIndex; i++) {
@@ -518,8 +581,9 @@ public class ChartDrawData {
         }
 
         final int ptsCount = xRightIndex - xLeftIndex + 1;
-        final float rectWidth = (xRightValue - xLeftValue) / ptsCount;
-        //Log.d("CDD", String.format("ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+        float rectWidth = (inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex]) / ptsCount;
+        rectWidth = (inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex] + rectWidth) / ptsCount;
+        Log.d("CDD", String.format("updateLines_BAR_Path_Matrix: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
 
         float prevMin = yLeftMin;
         float currMin;
@@ -528,8 +592,10 @@ public class ChartDrawData {
             if (linesRightAlign[j]) throw new AssertionError();
 
             final Path linePath = linesPaths[j];
+            final Path cursorPath = cursorPaths[j];
 
             linePath.reset();
+            cursorPath.reset();
 
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
@@ -557,7 +623,7 @@ public class ChartDrawData {
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linePath.lineTo(
-                        inputData.XValues[i],
+                        inputData.XValues[i - 1] + rectWidth,
                         tmpStackedSum[i]
                 );
                 linePath.lineTo(
@@ -568,7 +634,7 @@ public class ChartDrawData {
 
             // right |
             linePath.lineTo(
-                    inputData.XValues[xRightIndex] + rectWidth,
+                    inputData.XValues[xRightIndex - 1] + rectWidth,
                     prevMin
             );
             // _
@@ -580,6 +646,19 @@ public class ChartDrawData {
             linePath.close();
 
             linePath.transform(matrixLeft);
+
+            // cursor
+            if (prevCursorIndex != AbsChartView.NO_CURSOR) {
+                cursorPath.addRect(
+                        inputData.XValues[prevCursorIndex],
+                        tmpStackedSum[prevCursorIndex],
+                        inputData.XValues[prevCursorIndex] + rectWidth,
+                        prevMin,
+                        Path.Direction.CW
+                );
+
+                cursorPath.transform(matrixLeft);
+            }
 
             prevMin = currMin;
         }

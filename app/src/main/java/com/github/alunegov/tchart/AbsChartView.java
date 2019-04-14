@@ -219,34 +219,62 @@ public abstract class AbsChartView extends View {
 
         drawData.getXRange(xIndexRange);
 
-        final Path[] paths;
+        final Path[] paths, cursorPaths;
         int pointsCount;
+        boolean doCursor;
 
         switch (drawData.getDrawLinesMode()) {
             case PATH:
-                paths = drawData.getLinesPaths();
-                if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
-
-                for (int i = 0; i < paths.length; i++) {
-                    if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                        continue;
-                    }
-
-                    canvas.drawPath(paths[i], linesPaints[i]);
-                }
-
-                break;
-
             case PATH_REVERSE:
                 paths = drawData.getLinesPaths();
                 if (BuildConfig.DEBUG && (paths.length != linesPaints.length)) throw new AssertionError();
+                cursorPaths = drawData.getCursorPaths();
 
-                for (int i = paths.length - 1; i >= 0; i--) {
-                    if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
-                        continue;
+                doCursor = inputData.linesType == ChartInputData.LineType.BAR && cursorIndex != NO_CURSOR;
+
+                final Paint[] paints;
+                if (doCursor) {
+                    paints = linesFadedPaints;
+                } else {
+                    paints = linesPaints;
+                }
+
+                if (drawData.getDrawLinesMode() == ChartDrawData.DrawLinesMode.PATH) {
+                    for (int i = 0; i < paths.length; i++) {
+                        if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                            continue;
+                        }
+
+                        canvas.drawPath(paths[i], paints[i]);
                     }
 
-                    canvas.drawPath(paths[i], linesPaints[i]);
+                    if (doCursor) {
+                        for (int i = 0; i < paths.length; i++) {
+                            if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                                continue;
+                            }
+
+                            canvas.drawPath(cursorPaths[i], linesPaints[i]);
+                        }
+                    }
+                } else {
+                    for (int i = paths.length - 1; i >= 0; i--) {
+                        if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                            continue;
+                        }
+
+                        canvas.drawPath(paths[i], paints[i]);
+                    }
+
+                    if (doCursor) {
+                        for (int i = paths.length - 1; i >= 0; i--) {
+                            if (linesVisibilityState[i] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
+                                continue;
+                            }
+
+                            canvas.drawPath(cursorPaths[i], linesPaints[i]);
+                        }
+                    }
                 }
 
                 break;
@@ -279,10 +307,12 @@ public abstract class AbsChartView extends View {
                     }
 
                     for (int i = xIndexRange[0]; i <= xIndexRange[1]; i++) {
-                        if (cursorIndex == NO_CURSOR || inputData.linesType == ChartInputData.LineType.AREA || cursorIndex == i) {
-                            canvas.drawRect(rects[j][i], linesPaints[j]);
-                        } else {
+                        doCursor = inputData.linesType == ChartInputData.LineType.BAR && cursorIndex == i;
+
+                        if (doCursor) {
                             canvas.drawRect(rects[j][i], linesFadedPaints[j]);
+                        } else {
+                            canvas.drawRect(rects[j][i], linesPaints[j]);
                         }
                     }
                 }

@@ -147,14 +147,14 @@ public class CursorPopupView {
     private final RectF tmpRect = new RectF();
 
     public boolean onSingleTapUp(MotionEvent event) {
-/*        final boolean inCursorNextArea = false;
-        if (inCursorNextArea) {
+        tmpRect.set(left + width - 60, top, left + width, top + 60);
+        if (tmpRect.contains(event.getX(), event.getY())) {
             if (onChangeListener != null) {
                 onChangeListener.OnCursorNextClick();
             }
 
             return true;
-        }*/
+        }
 
         tmpRect.set(left, top, left + width, top + height);
         if (tmpRect.contains(event.getX(), event.getY())) {

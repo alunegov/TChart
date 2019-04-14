@@ -122,7 +122,7 @@ public class MainChartView extends AbsChartView {
     }
 
     @Override
-    public void setInputData(@NotNull ChartInputData inputData, @NotNull ChartInputDataStats inputDataStats) {
+    public void setInputData(@NotNull final ChartInputData inputData, @NotNull final ChartInputDataStats inputDataStats) {
         super.setInputData(inputData, inputDataStats);
 
         drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
@@ -160,6 +160,7 @@ public class MainChartView extends AbsChartView {
             public void OnClick() {
                 cursorIndex = NO_CURSOR;
 
+                drawData.updateCursorPaths(cursorIndex);
                 updateCursorPopup();
 
                 invalidate();
@@ -167,7 +168,14 @@ public class MainChartView extends AbsChartView {
 
             @Override
             public void OnCursorNextClick() {
-                // TODO
+                if (cursorIndex < (inputData.XValues.length - 1)) {
+                    cursorIndex++;
+
+                    drawData.updateCursorPaths(cursorIndex);
+                    updateCursorPopup();
+
+                    invalidate();
+                }
             }
         };
 
@@ -201,6 +209,7 @@ public class MainChartView extends AbsChartView {
     public void updateLineVisibility(int lineIndex, boolean exceptLine, int state, boolean doUpdate, boolean doInvalidate) {
         super.updateLineVisibility(lineIndex, exceptLine, state, doUpdate, doInvalidate);
 
+        drawData.updateCursorPaths(cursorIndex);
         updateCursorPopup();
     }
 
@@ -257,6 +266,8 @@ public class MainChartView extends AbsChartView {
         } else {
             cursorIndex = newCursorIndex;
         }
+
+        drawData.updateCursorPaths(cursorIndex);
         updateCursorPopup();
 
         invalidate();
