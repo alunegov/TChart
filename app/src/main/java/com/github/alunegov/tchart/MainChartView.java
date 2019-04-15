@@ -46,6 +46,7 @@ public class MainChartView extends AbsChartView {
     private float yAxisTextVerticalMargin;
     private float xAxisTextVerticalMargin;
 
+    private float axisTextHeight;
     // высота области графика (высота вида минус текст x-оси)
     private float graphAreaHeight;
 
@@ -100,13 +101,14 @@ public class MainChartView extends AbsChartView {
         xAxisTextPaint.setAntiAlias(true);
         xAxisTextPaint.setColor(axisTextColor);
         xAxisTextPaint.setStyle(Paint.Style.FILL);
-        xAxisTextPaint.setTextSize(axisTextSize);
 
         yLeftAxisTextPaint = new Paint(xAxisTextPaint);
 
         yRightAxisTextPaint = new Paint(xAxisTextPaint);
 
         axisLinePaint = ChartUtils.makeLinePaint(axisLineColor, axisLineWidth, true);
+
+        setAxisTextSize(axisTextSize);
 
         updateGraphAreaHeight();
     }
@@ -115,6 +117,9 @@ public class MainChartView extends AbsChartView {
         xAxisTextPaint.setTextSize(px);
         yLeftAxisTextPaint.setTextSize(px);
         yRightAxisTextPaint.setTextSize(px);
+
+        final Paint.FontMetrics fm = xAxisTextPaint.getFontMetrics();
+        axisTextHeight = fm.descent - fm.ascent;
 
         updateGraphAreaHeight();
 
@@ -230,10 +235,6 @@ public class MainChartView extends AbsChartView {
     // пересчёт высоты области для вывода сигналов (немного уменьшаем высоту, чтобы выводить в нижней части вида x-значения)
     // вызывается при изменении размеров вида, размера текста надписей оси
     private void updateGraphAreaHeight() {
-        Paint.FontMetrics fm = xAxisTextPaint.getFontMetrics();
-
-        final float axisTextHeight = fm.descent - fm.ascent;
-
         graphAreaHeight = getHeight() - 2 * xAxisTextVerticalMargin - axisTextHeight;
 
         if (drawData != null) {
@@ -309,7 +310,9 @@ public class MainChartView extends AbsChartView {
                 final int[] stackedSum = inputDataStats.getStackedSum();
                 assert stackedSum != null;
 
-                final float percentValue = (float) inputData.LinesValues[j][cursorIndex] / stackedSum[cursorIndex] * 100f;
+                final float lineK = (float) linesVisibilityState[j] / ChartInputDataStats.VISIBILITY_STATE_ON;
+
+                float percentValue = (float) inputData.LinesValues[j][cursorIndex] * lineK / stackedSum[cursorIndex] * 100f;
 
                 percent = String.format(Locale.getDefault(), "%d%%", Math.round(percentValue));
             } else {
@@ -382,11 +385,21 @@ public class MainChartView extends AbsChartView {
         final List<ChartDrawData.AxisMark> marks = drawData.getXAxisMarks();
         if (marks == null) throw new AssertionError();
 
+        final float viewLeft = getPaddingLeft();
+        final float viewRight = getWidth() - getPaddingRight();
+
         final float y = getHeight() - xAxisTextVerticalMargin;
 
         for (ChartDrawData.AxisMark mark: marks) {
+            final float textWidth = xAxisTextPaint.measureText(mark.getText());
+
             // центруем текст относительно точки
-            final float x = mark.getPosition() - xAxisTextPaint.measureText(mark.getText()) / 2f;
+            final float x = mark.getPosition() - textWidth / 2f;
+
+            // не выводим текст, если он выходит за границы
+            if ((viewLeft > x) || ((x + textWidth) > viewRight)) {
+                continue;
+            }
 
             canvas.drawText(mark.getText(), x, y, xAxisTextPaint);
         }
@@ -397,30 +410,36 @@ public class MainChartView extends AbsChartView {
         if (marks == null) throw new AssertionError();
 
         final boolean isLayoutRtl = ViewUtils.isLayoutRtl(this);
-        final int startX = getPaddingLeft();
-        final int w = getWidth() - getPaddingRight();
+
+        final int viewLeft = getPaddingLeft();
+        final int viewRight = getWidth() - getPaddingRight();
 
         for (ChartDrawData.AxisMark mark: marks) {
             final float y = mark.getPosition();
 
-            canvas.drawLine(startX, y, w, y, axisLinePaint);
+            canvas.drawLine(viewLeft, y, viewRight, y, axisLinePaint);
+
+            // не выводим текст, если он выходит за верхнюю границу
+            if ((y - axisTextHeight) < 0) {
+                continue;
+            }
 
             float x;
 
             if (mark.getText() != null) {
                 if (isLayoutRtl) {
-                    x = w - yLeftAxisTextPaint.measureText(mark.getText());
+                    x = viewRight - yLeftAxisTextPaint.measureText(mark.getText());
                 } else {
-                    x = startX;
+                    x = viewLeft;
                 }
                 canvas.drawText(mark.getText(), x, y - yAxisTextVerticalMargin, yLeftAxisTextPaint);
             }
 
             if (mark.getTextRight() != null) {
                 if (isLayoutRtl) {
-                    x = startX;
+                    x = viewLeft;
                 } else {
-                    x = w - yRightAxisTextPaint.measureText(mark.getTextRight());
+                    x = viewRight - yRightAxisTextPaint.measureText(mark.getTextRight());
                 }
                 canvas.drawText(mark.getTextRight(), x, y - yAxisTextVerticalMargin, yRightAxisTextPaint);
             }

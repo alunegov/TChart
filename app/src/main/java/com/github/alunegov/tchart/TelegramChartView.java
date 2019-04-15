@@ -8,9 +8,10 @@ import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 //import android.util.Log;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.Choreographer;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -70,7 +71,7 @@ public class TelegramChartView extends LinearLayout {
         lineNamesView.setOnChangeListener(lineNamesChangeListener);
 
         //zoneChangeAnimator.setInterpolator(new FastOutSlowInInterpolator());
-        zoneChangeAnimator.setDuration(200);
+        //zoneChangeAnimator.setDuration(200);
         zoneChangeAnimator.addUpdateListener(zoneChangeAnimatorUpdateListener);
 
         //lineVisibilityAnimator.setInterpolator(new FastOutSlowInInterpolator());
@@ -104,7 +105,7 @@ public class TelegramChartView extends LinearLayout {
         public void onZoneChanged(float zoneLeftValue, float zoneRightValue) {
             //mainChartView.setXRange(zoneLeftValue, zoneRightValue);
 
-            //zoneChangeAnimator.cancel();
+            zoneChangeAnimator.cancel();
 
             //Log.v("TCV", String.format("left = %f, right = %f, swing = %f onZoneChanged", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
 
@@ -235,17 +236,17 @@ public class TelegramChartView extends LinearLayout {
                 yLeftMax_preview, yRightMin_preview, yRightMax_preview, lineVisibilityState);
         lineVisibilityAnimator.start();
 
-/*                ymin_main1 = startYRange[0];
-                ymax_main1 = startYRange[1];
-                ymin_main2 = stopYRange[0];
-                ymax_main2 = stopYRange[1];
-                ymin_main3 = (stopYRange[0] - startYRange[0]) / 10;
-                ymax_main3 = (stopYRange[1] - startYRange[1]) / 10;
+                ymin_main1 = tmpStartYRange[0];
+                ymax_main1 = tmpStartYRange[1];
+                ymin_main2 = tmpStopYRange[0];
+                ymax_main2 = tmpStopYRange[1];
+                ymin_main3 = (tmpStopYRange[0] - tmpStartYRange[0]) / 40;
+                ymax_main3 = (tmpStopYRange[1] - tmpStartYRange[1]) / 40;
 
                 prevFrameTimeNanos = 0;
                 bb = 0;
 
-                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);*/
+//                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
 
 /*                postOnAnimationDelayed(new Runnable() {
                     @Override
@@ -272,14 +273,13 @@ public class TelegramChartView extends LinearLayout {
                 }, 16);*/
     }
 
-/*    private static final long NanoSecPerMSec = 1000000L;
+    private static final long NanoSecPerMSec = 1000000L;
     private long prevFrameTimeNanos;
     private int bb = 0;
 
     private final Choreographer.FrameCallback frameCallback = new Choreographer.FrameCallback() {
         @Override
         public void doFrame(long frameTimeNanos) {
-            //Trace.beginSection("Choreographer.doFrame");
             //Log.d("TCV", String.format("Choreographer.doFrame at %d", frameTimeNanos));
             if (bb++ < 1) {
                 Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
@@ -311,17 +311,15 @@ public class TelegramChartView extends LinearLayout {
                 ymin_main1 += ymin_main3;
                 ymax_main1 += ymax_main3;
 
-                mainChartView.setYRange(ymin_main1, ymax_main1, true);
-                previewChartView.setYRange(ymin_main1, ymax_main1, true);
+                mainChartView.setYRange(ymin_main1, ymax_main1, 0, 0, true);
+                previewChartView.setYRange(ymin_main1, ymax_main1, 0, 0, true);
 
                 Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
             } else {
-                previewChartView.useCachedLines();
+//                previewChartView.useCachedLines();
             }
-
-            //Trace.endSection();
         }
-    };*/
+    };
 
     private final @NotNull ValueAnimator.AnimatorUpdateListener lineVisibilityAnimatorUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
         @Override
@@ -382,18 +380,22 @@ public class TelegramChartView extends LinearLayout {
     public void setInputData(@NotNull ChartInputData inputData) {
         inputDataStats = new ChartInputDataStats(inputData);
 
-        final LineName[] linesNames = new LineName[inputData.LinesNames.length];
-        for (int i = 0; i < inputData.LinesNames.length; i++) {
-            linesNames[i] = new LineName(inputData.LinesNames[i], inputData.LinesColors[i]);
-        }
-
         mainChartView.setInputData(inputData, inputDataStats);
         previewChartView.setInputData(inputData, inputDataStats);
-        lineNamesView.setLineNames(linesNames);
+
+        if (inputData.LinesValues.length > 1) {
+            final LineName[] linesNames = new LineName[inputData.LinesNames.length];
+            for (int i = 0; i < inputData.LinesNames.length; i++) {
+                linesNames[i] = new LineName(inputData.LinesNames[i], inputData.LinesColors[i]);
+            }
+
+            lineNamesView.setLineNames(linesNames);
+        } else {
+            lineNamesView.setVisibility(GONE);
+        }
 
         final float[] zone = new float[2];
         previewChartView.getZone(zone);
-
         mainChartView.setXRange(zone[0], zone[1]);
 
         mainChartView.getXRange(tmpXRange);

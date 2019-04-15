@@ -350,7 +350,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     private boolean updateCachedLines() {
-        Log.d("PCV", "updateCachedLines");
+        //Log.d("PCV", "updateCachedLines");
 
         if (getWidth() == 0 || getHeight() == 0) {
             cachedLines = null;
@@ -378,7 +378,7 @@ public class PreviewChartView extends AbsChartView {
                 return;
             }
 
-//            drawLines(canvas);
+            drawLines(canvas);
             drawLinesFade(canvas);
             drawFrame(canvas);
 //        }

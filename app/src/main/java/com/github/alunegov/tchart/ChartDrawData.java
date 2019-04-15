@@ -75,6 +75,7 @@ public class ChartDrawData {
                 drawLinesMode = DrawLinesMode.LINES;
                 break;
             case BAR:
+                //drawLinesMode = DrawLinesMode.RECT;
                 drawLinesMode = DrawLinesMode.PATH_REVERSE;
                 break;
             case AREA:
@@ -222,14 +223,14 @@ public class ChartDrawData {
         float tmpStackedSum = 0;
 
         final int ptsCount = xRightIndex - xLeftIndex + 1;
-        float rectWidth = (xRightValue - xLeftValue) / ptsCount;
-        rectWidth = (xRightValue + rectWidth - xLeftValue) / ptsCount;
-        Log.d("CDD", String.format("updateCursorPaths: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+        final float rectWidth = (float )(inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex]) / ptsCount;
+        final float halfRectWidth = rectWidth / 2f;
+        //Log.d("CDD", String.format("updateCursorPaths: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
 
         float prevMin = yLeftMin;
 
         for (int j = 0; j < cursorPaths.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             final Path cursorPath = cursorPaths[j];
 
@@ -244,9 +245,9 @@ public class ChartDrawData {
             tmpStackedSum += inputData.LinesValues[j][cursorIndex] * lineK;
 
             cursorPath.addRect(
-                    inputData.XValues[cursorIndex],
+                    inputData.XValues[cursorIndex] - halfRectWidth,
                     tmpStackedSum,
-                    inputData.XValues[cursorIndex] + rectWidth,
+                    inputData.XValues[cursorIndex] + halfRectWidth,
                     prevMin,
                     Path.Direction.CW
             );
@@ -382,8 +383,8 @@ public class ChartDrawData {
         matrixRight.postTranslate(xToPixelHelper, yRightToPixelHelper);
     }
 
-//    private boolean b1 = false;
-//    private boolean b2 = false;
+    private boolean b1 = false;
+    private boolean b2 = false;
 
     private void updateLinesAndAxis() {
         if (!areaSet) {
@@ -433,7 +434,7 @@ public class ChartDrawData {
         final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesPaths.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             linesPaths[j].reset();
 
@@ -462,7 +463,7 @@ public class ChartDrawData {
         final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
@@ -535,7 +536,7 @@ public class ChartDrawData {
 
         int l = -1;
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
@@ -581,15 +582,15 @@ public class ChartDrawData {
         }
 
         final int ptsCount = xRightIndex - xLeftIndex + 1;
-        float rectWidth = (inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex]) / ptsCount;
-        rectWidth = (inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex] + rectWidth) / ptsCount;
-        Log.d("CDD", String.format("updateLines_BAR_Path_Matrix: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
+        final float rectWidth = (float) (inputData.XValues[xRightIndex] - inputData.XValues[xLeftIndex]) / ptsCount;
+        final float halfRectWidth = rectWidth / 2f;
+        //Log.d("CDD", String.format("updateLines_BAR_Path_Matrix: ptsCount = %d, rectWidth = %f", ptsCount, rectWidth));
 
         float prevMin = yLeftMin;
         float currMin;
 
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             final Path linePath = linesPaths[j];
             final Path cursorPath = cursorPaths[j];
@@ -614,32 +615,32 @@ public class ChartDrawData {
             }
 
             linePath.moveTo(
-                    inputData.XValues[xLeftIndex],
+                    inputData.XValues[xLeftIndex] - halfRectWidth,
                     tmpStackedSum[xLeftIndex]
             );
             linePath.lineTo(
-                    inputData.XValues[xLeftIndex] + rectWidth,
+                    inputData.XValues[xLeftIndex] + halfRectWidth,
                     tmpStackedSum[xLeftIndex]
             );
             for (int i = xLeftIndex + 1; i <= xRightIndex; i++) {
                 linePath.lineTo(
-                        inputData.XValues[i - 1] + rectWidth,
+                        inputData.XValues[i - 1] + halfRectWidth,
                         tmpStackedSum[i]
                 );
                 linePath.lineTo(
-                        inputData.XValues[i] + rectWidth,
+                        inputData.XValues[i] + halfRectWidth,
                         tmpStackedSum[i]
                 );
             }
 
             // right |
             linePath.lineTo(
-                    inputData.XValues[xRightIndex - 1] + rectWidth,
+                    inputData.XValues[xRightIndex] + halfRectWidth,
                     prevMin
             );
             // _
             linePath.lineTo(
-                    inputData.XValues[xLeftIndex],
+                    inputData.XValues[xLeftIndex] - halfRectWidth,
                     prevMin
             );
             // left |
@@ -650,9 +651,9 @@ public class ChartDrawData {
             // cursor
             if (prevCursorIndex != AbsChartView.NO_CURSOR) {
                 cursorPath.addRect(
-                        inputData.XValues[prevCursorIndex],
+                        inputData.XValues[prevCursorIndex] - halfRectWidth,
                         tmpStackedSum[prevCursorIndex],
-                        inputData.XValues[prevCursorIndex] + rectWidth,
+                        inputData.XValues[prevCursorIndex] + halfRectWidth,
                         prevMin,
                         Path.Direction.CW
                 );
@@ -678,7 +679,7 @@ public class ChartDrawData {
 
         int l = -1;
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             if (linesVisibilityState[j] == ChartInputDataStats.VISIBILITY_STATE_OFF) {
                 continue;
@@ -728,7 +729,7 @@ public class ChartDrawData {
         final float yToPixelHelper = area.bottom/* - y * scaleYLeft*/ + yLeftMin * scaleYLeft;
 
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             final Path linePath = linesPaths[j];
 
@@ -794,7 +795,7 @@ public class ChartDrawData {
         float prevPercMin = 0f;
 
         for (int j = 0; j < linesLines.length; j++) {
-            if (linesRightAlign[j]) throw new AssertionError();
+            if (BuildConfig.DEBUG && linesRightAlign[j]) throw new AssertionError();
 
             final Path linePath = linesPaths[j];
 
@@ -1056,7 +1057,8 @@ public class ChartDrawData {
         float startPixel;
 
         public String toString() {
-            return String.format("stepValue = %d, stepPixel = %f, startValue = %d, startPixel = %f", stepValue, stepPixel, startValue, startPixel);
+            return String.format(Locale.getDefault(), "stepValue = %d, stepPixel = %f, startValue = %d, startPixel = %f",
+                    stepValue, stepPixel, startValue, startPixel);
         }
     }
 

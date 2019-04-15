@@ -131,7 +131,7 @@ public abstract class AbsChartView extends View {
             return;
         }
 
-//        executor.execute(new QQ(yMin, yMax, doUpdateAndInvalidate));
+//        executor.execute(new QQ(yLeftMin, yLeftMax, doUpdateAndInvalidate));
 
         drawData.setYRange(yLeftMin, yLeftMax, yRightMin, yRightMax);
 
@@ -141,7 +141,7 @@ public abstract class AbsChartView extends View {
         }
     }
 
-/*    private class QQ implements Runnable {
+    private class QQ implements Runnable {
         int yMin;
         int yMax;
         boolean doUpdateAndInvalidate;
@@ -155,7 +155,7 @@ public abstract class AbsChartView extends View {
         @Override
         public void run() {
             synchronized (lock) {
-                drawData.setYRange(yMin, yMax);
+                drawData.setYRange(yMin, yMax, 0, 0);
             }
 
             if (doUpdateAndInvalidate) {
@@ -167,7 +167,7 @@ public abstract class AbsChartView extends View {
                 }
             }
         }
-    }*/
+    }
 
     private void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
         drawData.calcYRangeAt(xLeftValue, xRightValue, inputDataStats.getLinesVisibilityState(), range);
@@ -307,12 +307,12 @@ public abstract class AbsChartView extends View {
                     }
 
                     for (int i = xIndexRange[0]; i <= xIndexRange[1]; i++) {
-                        doCursor = inputData.linesType == ChartInputData.LineType.BAR && cursorIndex == i;
+                        doCursor = cursorIndex == NO_CURSOR || (inputData.linesType == ChartInputData.LineType.BAR && cursorIndex == i);
 
                         if (doCursor) {
-                            canvas.drawRect(rects[j][i], linesFadedPaints[j]);
-                        } else {
                             canvas.drawRect(rects[j][i], linesPaints[j]);
+                        } else {
+                            canvas.drawRect(rects[j][i], linesFadedPaints[j]);
                         }
                     }
                 }

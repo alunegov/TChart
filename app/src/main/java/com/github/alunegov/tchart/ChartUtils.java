@@ -4,13 +4,13 @@ import android.content.Context;
 import android.graphics.Paint;
 import android.support.v4.content.ContextCompat;
 import android.text.format.DateFormat;
+import android.util.TypedValue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import android.util.TypedValue;
 import org.jetbrains.annotations.NotNull;
 
 public class ChartUtils {
