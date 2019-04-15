@@ -160,6 +160,14 @@ public class ChartInputDataStats {
         minMax[1] = max;
     }
 
+    public static boolean isYMinMaxDetected(@NotNull int[] minMax) {
+        return isYMinMaxDetected(minMax[0], minMax[1]);
+    }
+
+    public static boolean isYMinMaxDetected(int min, int max) {
+        return /*min != Integer.MAX_VALUE && */max != Integer.MIN_VALUE;
+    }
+
     private final @NotNull int[] tmpMinMax = new int[2];
 
     // Определение абсолютного размаха (максимум - минимум) по Y в указанном диапазоне X по включенным сигналам. Для

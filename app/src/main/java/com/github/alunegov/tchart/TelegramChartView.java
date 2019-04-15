@@ -141,6 +141,8 @@ public class TelegramChartView extends LinearLayout {
 
     private final int[] tmpStartYRange = new int[4];
     private final int[] tmpStopYRange = new int[4];
+    private final int[] tmpStartYRangePreview = new int[4];
+    private final int[] tmpStopYRangePreview = new int[4];
 
     private void startZoneChangeAnimation(float zoneLeftValue, float zoneRightValue, boolean b) {
         final PropertyValuesHolder xl, xr;
@@ -211,16 +213,57 @@ public class TelegramChartView extends LinearLayout {
         final int stopLineVisibilityState = isChecked ? ChartInputDataStats.VISIBILITY_STATE_ON : ChartInputDataStats.VISIBILITY_STATE_OFF;
 
         mainChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRange, tmpStopYRange);
-        final PropertyValuesHolder yLeftMin_main = PropertyValuesHolder.ofInt("yLeftMin_main", tmpStartYRange[0], tmpStopYRange[0]);
-        final PropertyValuesHolder yLeftMax_main = PropertyValuesHolder.ofInt("yLeftMax_main", tmpStartYRange[1], tmpStopYRange[1]);
-        final PropertyValuesHolder yRightMin_main = PropertyValuesHolder.ofInt("yRightMin_main", tmpStartYRange[2], tmpStopYRange[2]);
-        final PropertyValuesHolder yRightMax_main = PropertyValuesHolder.ofInt("yRightMax_main", tmpStartYRange[3], tmpStopYRange[3]);
+        previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRangePreview, tmpStopYRangePreview);
 
-        previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRange, tmpStopYRange);
-        final PropertyValuesHolder yLeftMin_preview = PropertyValuesHolder.ofInt("yLeftMin_preview", tmpStartYRange[0], tmpStopYRange[0]);
-        final PropertyValuesHolder yLeftMax_preview = PropertyValuesHolder.ofInt("yLeftMax_preview", tmpStartYRange[1], tmpStopYRange[1]);
-        final PropertyValuesHolder yRightMin_preview = PropertyValuesHolder.ofInt("yRightMin_preview", tmpStartYRange[2], tmpStopYRange[2]);
-        final PropertyValuesHolder yRightMax_preview = PropertyValuesHolder.ofInt("yRightMax_preview", tmpStartYRange[3], tmpStopYRange[3]);
+        // оставляем мин/макс последней видимой линии
+
+        final PropertyValuesHolder yLeftMin_main;
+        final PropertyValuesHolder yLeftMax_main;
+        final PropertyValuesHolder yLeftMin_preview;
+        final PropertyValuesHolder yLeftMax_preview;
+        if (!ChartInputDataStats.isYMinMaxDetected(tmpStartYRange[0], tmpStartYRange[1])) {
+            yLeftMin_main = PropertyValuesHolder.ofInt("yLeftMin_main", tmpStopYRange[0], tmpStopYRange[0]);
+            yLeftMax_main = PropertyValuesHolder.ofInt("yLeftMax_main", tmpStopYRange[1], tmpStopYRange[1]);
+
+            yLeftMin_preview = PropertyValuesHolder.ofInt("yLeftMin_preview", tmpStopYRangePreview[0], tmpStopYRangePreview[0]);
+            yLeftMax_preview = PropertyValuesHolder.ofInt("yLeftMax_preview", tmpStopYRangePreview[1], tmpStopYRangePreview[1]);
+        } else if (!ChartInputDataStats.isYMinMaxDetected(tmpStopYRange[0], tmpStopYRange[1])) {
+            yLeftMin_main = PropertyValuesHolder.ofInt("yLeftMin_main", tmpStartYRange[0], tmpStartYRange[0]);
+            yLeftMax_main = PropertyValuesHolder.ofInt("yLeftMax_main", tmpStartYRange[1], tmpStartYRange[1]);
+
+            yLeftMin_preview = PropertyValuesHolder.ofInt("yLeftMin_preview", tmpStartYRangePreview[0], tmpStartYRangePreview[0]);
+            yLeftMax_preview = PropertyValuesHolder.ofInt("yLeftMax_preview", tmpStartYRangePreview[1], tmpStartYRangePreview[1]);
+        } else {
+            yLeftMin_main = PropertyValuesHolder.ofInt("yLeftMin_main", tmpStartYRange[0], tmpStopYRange[0]);
+            yLeftMax_main = PropertyValuesHolder.ofInt("yLeftMax_main", tmpStartYRange[1], tmpStopYRange[1]);
+
+            yLeftMin_preview = PropertyValuesHolder.ofInt("yLeftMin_preview", tmpStartYRangePreview[0], tmpStopYRangePreview[0]);
+            yLeftMax_preview = PropertyValuesHolder.ofInt("yLeftMax_preview", tmpStartYRangePreview[1], tmpStopYRangePreview[1]);
+        }
+
+        final PropertyValuesHolder yRightMin_main;
+        final PropertyValuesHolder yRightMax_main;
+        final PropertyValuesHolder yRightMin_preview;
+        final PropertyValuesHolder yRightMax_preview;
+        if (!ChartInputDataStats.isYMinMaxDetected(tmpStartYRange[2], tmpStartYRange[3])) {
+            yRightMin_main = PropertyValuesHolder.ofInt("yRightMin_main", tmpStopYRange[2], tmpStopYRange[2]);
+            yRightMax_main = PropertyValuesHolder.ofInt("yRightMax_main", tmpStopYRange[3], tmpStopYRange[3]);
+
+            yRightMin_preview = PropertyValuesHolder.ofInt("yRightMin_preview", tmpStopYRangePreview[2], tmpStopYRangePreview[2]);
+            yRightMax_preview = PropertyValuesHolder.ofInt("yRightMax_preview", tmpStopYRangePreview[3], tmpStopYRangePreview[3]);
+        } else if (!ChartInputDataStats.isYMinMaxDetected(tmpStopYRange[2], tmpStopYRange[3])) {
+            yRightMin_main = PropertyValuesHolder.ofInt("yRightMin_main", tmpStartYRange[2], tmpStartYRange[2]);
+            yRightMax_main = PropertyValuesHolder.ofInt("yRightMax_main", tmpStartYRange[3], tmpStartYRange[3]);
+
+            yRightMin_preview = PropertyValuesHolder.ofInt("yRightMin_preview", tmpStartYRangePreview[2], tmpStartYRangePreview[2]);
+            yRightMax_preview = PropertyValuesHolder.ofInt("yRightMax_preview", tmpStartYRangePreview[3], tmpStartYRangePreview[3]);
+        } else {
+            yRightMin_main = PropertyValuesHolder.ofInt("yRightMin_main", tmpStartYRange[2], tmpStopYRange[2]);
+            yRightMax_main = PropertyValuesHolder.ofInt("yRightMax_main", tmpStartYRange[3], tmpStopYRange[3]);
+
+            yRightMin_preview = PropertyValuesHolder.ofInt("yRightMin_preview", tmpStartYRangePreview[2], tmpStopYRangePreview[2]);
+            yRightMax_preview = PropertyValuesHolder.ofInt("yRightMax_preview", tmpStartYRangePreview[3], tmpStopYRangePreview[3]);
+        }
 
         final PropertyValuesHolder lineVisibilityState = PropertyValuesHolder.ofInt("lineVisibilityState", startLineVisibilityState, stopLineVisibilityState);
 
@@ -273,7 +316,7 @@ public class TelegramChartView extends LinearLayout {
                 }, 16);*/
     }
 
-    private static final long NanoSecPerMSec = 1000000L;
+/*    private static final long NanoSecPerMSec = 1000000L;
     private long prevFrameTimeNanos;
     private int bb = 0;
 
@@ -319,7 +362,7 @@ public class TelegramChartView extends LinearLayout {
 //                previewChartView.useCachedLines();
             }
         }
-    };
+    };*/
 
     private final @NotNull ValueAnimator.AnimatorUpdateListener lineVisibilityAnimatorUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
         @Override

@@ -292,18 +292,22 @@ public class ChartDrawData {
 
         // добавляем к минимуму/максимуму часть размаха, чтобы снизу/сверху было немного места (так на ref, была видна пометка точки)
         // TODO: добавлять к минимуму не просто "часть размаха", а так, чтобы первая линия оцифровки была в "нулевом пикселе"
-        if (mYRangeEnlarging) {
-            final int yLeftDelta = Math.round(0.05f * (range[1] - range[0]));
-            if (range[0] != 0) {
-                range[0] -= yLeftDelta;
+        if (mYRangeEnlarging && (ChartInputDataStats.isYMinMaxDetected(tmpYLeftMinMax) || ChartInputDataStats.isYMinMaxDetected(tmpYRightMinMax))) {
+            if (ChartInputDataStats.isYMinMaxDetected(tmpYLeftMinMax)) {
+                final int yLeftDelta = Math.round(0.05f * (range[1] - range[0]));
+                if (range[0] != 0) {
+                    range[0] -= yLeftDelta;
+                }
+                range[1] += yLeftDelta;
             }
-            range[1] += yLeftDelta;
 
-            final int yRightDelta = Math.round(0.05f * (range[3] - range[2]));
-            if (range[2] != 0) {
-                range[2] -= yRightDelta;
+            if (ChartInputDataStats.isYMinMaxDetected(tmpYRightMinMax)) {
+                final int yRightDelta = Math.round(0.05f * (range[3] - range[2]));
+                if (range[2] != 0) {
+                    range[2] -= yRightDelta;
+                }
+                range[3] += yRightDelta;
             }
-            range[3] += yRightDelta;
 
 /*            //
             if (areaSet) {
