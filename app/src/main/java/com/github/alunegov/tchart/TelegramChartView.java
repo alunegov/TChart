@@ -71,7 +71,7 @@ public class TelegramChartView extends LinearLayout {
         lineNamesView.setOnChangeListener(lineNamesChangeListener);
 
         //zoneChangeAnimator.setInterpolator(new FastOutSlowInInterpolator());
-        //zoneChangeAnimator.setDuration(200);
+        zoneChangeAnimator.setDuration(200);
         zoneChangeAnimator.addUpdateListener(zoneChangeAnimatorUpdateListener);
 
         //lineVisibilityAnimator.setInterpolator(new FastOutSlowInInterpolator());
@@ -236,7 +236,7 @@ public class TelegramChartView extends LinearLayout {
                 yLeftMax_preview, yRightMin_preview, yRightMax_preview, lineVisibilityState);
         lineVisibilityAnimator.start();
 
-                ymin_main1 = tmpStartYRange[0];
+/*                ymin_main1 = tmpStartYRange[0];
                 ymax_main1 = tmpStartYRange[1];
                 ymin_main2 = tmpStopYRange[0];
                 ymax_main2 = tmpStopYRange[1];
@@ -246,7 +246,7 @@ public class TelegramChartView extends LinearLayout {
                 prevFrameTimeNanos = 0;
                 bb = 0;
 
-//                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);
+                Choreographer.getInstance().postFrameCallbackDelayed(frameCallback, 0);*/
 
 /*                postOnAnimationDelayed(new Runnable() {
                     @Override
