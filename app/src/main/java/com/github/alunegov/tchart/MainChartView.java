@@ -401,6 +401,7 @@ public class MainChartView extends AbsChartView {
                 continue;
             }
 
+            if (mark.getText() == null) throw new AssertionError();
             canvas.drawText(mark.getText(), x, y, xAxisTextPaint);
         }
     }
