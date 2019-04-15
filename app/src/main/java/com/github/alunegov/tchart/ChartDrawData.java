@@ -101,12 +101,12 @@ public class ChartDrawData {
 
         pts = new float[(inputData.XValues.length - 1) * 4];
 
-        linesRects = new RectF[inputData.LinesValues.length][inputData.XValues.length];
+        /*linesRects = new RectF[inputData.LinesValues.length][inputData.XValues.length];
         for (int i = 0; i < linesRects.length; i++) {
             for (int j = 0; j < linesRects[i].length; j++) {
                 linesRects[i][j] = new RectF();
             }
-        }
+        }*/
 
         mYRangeEnlarging = false;
     }

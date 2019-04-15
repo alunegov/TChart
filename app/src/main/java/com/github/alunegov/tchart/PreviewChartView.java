@@ -150,7 +150,7 @@ public class PreviewChartView extends AbsChartView {
         }
     }
 
-    @Override
+/*    @Override
     protected void drawLines2(@NotNull Canvas canvas) {
         if (useCachedLines) {
             if (BuildConfig.DEBUG && (cachedLines == null)) throw new AssertionError();
@@ -158,7 +158,7 @@ public class PreviewChartView extends AbsChartView {
         } else {
             super.drawLines2(canvas);
         }
-    }
+    }*/
 
     public void getZone(@NotNull float[] zone) {
         if (BuildConfig.DEBUG && (zone.length != 2)) throw new AssertionError();

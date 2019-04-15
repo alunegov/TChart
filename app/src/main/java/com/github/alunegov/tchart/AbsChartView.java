@@ -123,8 +123,8 @@ public abstract class AbsChartView extends View {
         drawData.getYRange(range);
     }
 
-    private Executor executor = Executors.newSingleThreadExecutor();
-    protected final @NotNull Object lock = new Object();
+//    private Executor executor = Executors.newSingleThreadExecutor();
+//    protected final @NotNull Object lock = new Object();
 
     public void setYRange(int yLeftMin, int yLeftMax, int yRightMin, int yRightMax, boolean doUpdateAndInvalidate) {
         if (drawData == null) {
@@ -141,7 +141,7 @@ public abstract class AbsChartView extends View {
         }
     }
 
-    private class QQ implements Runnable {
+/*    private class QQ implements Runnable {
         int yMin;
         int yMax;
         boolean doUpdateAndInvalidate;
@@ -167,7 +167,7 @@ public abstract class AbsChartView extends View {
                 }
             }
         }
-    }
+    }*/
 
     private void calcYRangeAt(float xLeftValue, float xRightValue, @NotNull int[] range) {
         drawData.calcYRangeAt(xLeftValue, xRightValue, inputDataStats.getLinesVisibilityState(), range);
@@ -210,6 +210,8 @@ public abstract class AbsChartView extends View {
         drawData.getXRange(tmpXRange);
         calcYRangeAt(tmpXRange[0], tmpXRange[1], lineIndex, exceptLine, state, yStopRange);
     }
+
+    private final @NotNull int[] xIndexRange = new int[2];
 
     protected void drawLines(@NotNull Canvas canvas) {
         if (BuildConfig.DEBUG && (drawData == null)) throw new AssertionError();
@@ -321,8 +323,7 @@ public abstract class AbsChartView extends View {
         }
     }
 
-    private final @NotNull int[] xIndexRange = new int[2];
-    private final @NotNull float[] a1 = new float[500 * 4];
+/*    private final @NotNull float[] a1 = new float[500 * 4];
     private final @NotNull float[] a2 = new float[500 * 4];
 
     protected void drawLines2(@NotNull Canvas canvas) {
@@ -356,5 +357,5 @@ public abstract class AbsChartView extends View {
 
             canvas.drawLines(a2, 0, (linePtsCount - 1) << 2,  linesPaints[j]);
         }
-    }
+    }*/
 }
