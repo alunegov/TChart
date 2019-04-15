@@ -19,6 +19,8 @@ public class ChartDrawData {
     private int axisLineCount;
     // Преобразователь значения в текст для оцифровки оси X
     private AxisTextConverter xAxisTextCnv;
+    // Преобразователь значения в текст для оцифровки оси Y
+    private AxisTextConverter yAxisTextCnv;
     //
     private boolean mYRangeEnlarging;
     // режим нижней границы Y
@@ -109,9 +111,10 @@ public class ChartDrawData {
         mYRangeEnlarging = false;
     }
 
-    public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextCnv) {
+    public void enableMarksUpdating(int axisLineCount, @NotNull AxisTextConverter xAxisTextCnv, @NotNull AxisTextConverter yAxisTextCnv) {
         this.axisLineCount = axisLineCount;
         this.xAxisTextCnv = xAxisTextCnv;
+        this.yAxisTextCnv = yAxisTextCnv;
 
         xAxisMarks = new ArrayList<>();
         yAxisMarks = new ArrayList<>();
@@ -914,7 +917,7 @@ public class ChartDrawData {
     }
 
     private boolean getIsMarksUpdating() {
-        return (axisLineCount > 0) && (xAxisTextCnv != null);
+        return (axisLineCount > 0) && ((xAxisTextCnv != null) || (yAxisTextCnv != null));
     }
 
     private static final long MSEC_PER_HOUR = 60 * 60 * 1000L;
@@ -967,6 +970,7 @@ public class ChartDrawData {
 
     private void updateYAxisMarks() {
         if (BuildConfig.DEBUG && (yAxisMarks == null)) throw new AssertionError();
+        if (BuildConfig.DEBUG && (yAxisTextCnv == null)) throw new AssertionError();
 
         calcYAxisMarksHelper(yLeftMin, yLeftMax, yMarksHelper);
 
@@ -976,7 +980,7 @@ public class ChartDrawData {
 
         int i = yMarksHelper.startValue;
         for (float y = yMarksHelper.startPixel; y >= 0; y -= yMarksHelper.stepPixel) {
-            final String text = String.valueOf(i);
+            final String text = yAxisTextCnv.toText(i);
 
             yAxisMarks.add(new AxisMark(y, text, null));
 

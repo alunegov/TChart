@@ -130,7 +130,7 @@ public class MainChartView extends AbsChartView {
     public void setInputData(@NotNull final ChartInputData inputData, @NotNull final ChartInputDataStats inputDataStats) {
         super.setInputData(inputData, inputDataStats);
 
-        drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()));
+        drawData.enableMarksUpdating(AXIS_LINES_COUNT, new XAxisConverter(getContext()), new YAxisConverter());
         drawData.enableYRangeEnlarging();
 
         if (inputData.flags.get(ChartInputData.FLAG_Y_SCALED)) {
@@ -574,6 +574,29 @@ public class MainChartView extends AbsChartView {
         public @NotNull String toText(long value) {
             tmpDate.setTime(value);
             return dateFormat.format(tmpDate);
+        }
+    }
+
+    public static class YAxisConverter implements ChartDrawData.AxisTextConverter {
+        @Override
+        public @NotNull String toText(long value) {
+            if (value >= 1_000_000) {
+                double d = value / 1_000_000d;
+                if (d == (long) d) {
+                    return String.format(Locale.getDefault(), "%dM", (long) d);
+                } else {
+                    return String.format(Locale.getDefault(), "%sM", d);
+                }
+            } else if (value >= 1_000) {
+                double d = value / 1_000d;
+                if (d == (long) d) {
+                    return String.format(Locale.getDefault(), "%dK", (long) d);
+                } else {
+                    return String.format(Locale.getDefault(), "%sK", d);
+                }
+            } else {
+                return String.valueOf(value);
+            }
         }
     }
 }

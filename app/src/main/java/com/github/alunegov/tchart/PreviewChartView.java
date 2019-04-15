@@ -394,10 +394,12 @@ public class PreviewChartView extends AbsChartView {
 
         // left
         tmpRect.set(0, borderHorizontalHeight, zoneLeftBorder.right, h);
-        drawLeftRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
+        //drawLeftRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
+        canvas.drawRect(tmpRect, fadedPaint);
         // right
         tmpRect.set(zoneRightBorder.left, borderHorizontalHeight, w, h);
-        drawRightRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
+        //drawRightRoundedRect(canvas, tmpRect, frameCornerRadius, fadedPaint);
+        canvas.drawRect(tmpRect, fadedPaint);
     }
 
     private final Path tmpPath = new Path();
