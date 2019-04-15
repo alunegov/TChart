@@ -12,6 +12,7 @@
     android:background="@drawable/rounded_checkbox_background"
     android:text="@string/dummy"
     android:textColor="#FFFFFF"
+    android:textSize="15sp"
     android:checked="true"
     android:saveEnabled="false"
     />

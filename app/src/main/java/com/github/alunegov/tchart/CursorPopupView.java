@@ -28,6 +28,7 @@ public class CursorPopupView {
     private static final int BORDER_COLOR = Color.parseColor("#E2E5E7");
 
     private static final int CURSOR_NEXT_COLOR = Color.parseColor("#D2D5D7");
+    private static final int CURSOR_NEXT_ZONE_DP = 40;
 
     private static final int TEXT_COLOR = Color.parseColor("#FFFFFF");
 
@@ -44,6 +45,7 @@ public class CursorPopupView {
     private float verticalMargin;
     private float horizontalMargin;
     private float borderRadius;
+    private float cursorNextZone;
 
     private float textHeight;
     private float[] percentsTextWidth;
@@ -77,6 +79,7 @@ public class CursorPopupView {
         horizontalMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, HORIZONTAL_MARGIN_DP, dm);
         final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, TEXT_SIZE_SP, dm);
         borderRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, BORDER_RADIUS_SP, dm);
+        cursorNextZone = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CURSOR_NEXT_ZONE_DP, dm);
 
         percentsTextWidth = new float[linesValues.length];
         valuesTextWidth = new float[linesValues.length];
@@ -153,7 +156,7 @@ public class CursorPopupView {
     private final RectF tmpRect = new RectF();
 
     public boolean onSingleTapUp(MotionEvent event) {
-        tmpRect.set(left + width - 60, top, left + width, top + 60);
+        tmpRect.set(left + width - cursorNextZone, top, left + width, top + cursorNextZone);
         if (tmpRect.contains(event.getX(), event.getY())) {
             if (onChangeListener != null) {
                 onChangeListener.OnCursorNextClick();
@@ -188,14 +191,14 @@ public class CursorPopupView {
                 left + width - padding - textHeight / 2f,
                 y,
                 left + width - padding,
-                y - textHeight / 2f,
+                y - textHeight / 2f + 3,
                 cursorNextPaint
         );
         canvas.drawLine(
                 left + width - padding,
-                y - textHeight / 2f,
+                y - textHeight / 2f + 3,
                 left + width - padding - textHeight / 2f,
-                y - textHeight,
+                y - textHeight + 6,
                 cursorNextPaint
         );
 

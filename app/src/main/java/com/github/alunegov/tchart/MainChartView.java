@@ -417,12 +417,12 @@ public class MainChartView extends AbsChartView {
         for (ChartDrawData.AxisMark mark: marks) {
             final float y = mark.getPosition();
 
-            canvas.drawLine(viewLeft, y, viewRight, y, axisLinePaint);
-
             // не выводим текст, если он выходит за верхнюю границу
             if ((y - axisTextHeight) < 0) {
                 continue;
             }
+
+            canvas.drawLine(viewLeft, y, viewRight, y, axisLinePaint);
 
             float x;
 

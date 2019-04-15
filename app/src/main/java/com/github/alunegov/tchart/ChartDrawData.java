@@ -200,10 +200,15 @@ public class ChartDrawData {
     }
 
     public void setYRange(int yLeftMin, int yLeftMax, int yRightMin, int yRightMax) {
-        this.yLeftMin = yLeftMin;
-        this.yLeftMax = yLeftMax;
-        this.yRightMin = yRightMin;
-        this.yRightMax = yRightMax;
+        // оставляем мин/макс последней видимой линии
+        if (ChartInputDataStats.isYMinMaxDetected(yLeftMin, yLeftMax)) {
+            this.yLeftMin = yLeftMin;
+            this.yLeftMax = yLeftMax;
+        }
+        if (ChartInputDataStats.isYMinMaxDetected(yRightMin, yRightMax)) {
+            this.yRightMin = yRightMin;
+            this.yRightMax = yRightMax;
+        }
 
         updateScalesAndMatrix();
         updateLinesAndAxis();
@@ -368,10 +373,15 @@ public class ChartDrawData {
     private void updateYRange() {
         calcYRangeAt(xLeftIndex, xRightIndex, inputDataStats.getLinesVisibilityState(), tmpYRange);
 
-        yLeftMin = tmpYRange[0];
-        yLeftMax = tmpYRange[1];
-        yRightMin = tmpYRange[2];
-        yRightMax = tmpYRange[3];
+        // оставляем мин/макс последней видимой линии
+        if (ChartInputDataStats.isYMinMaxDetected(tmpYRange[0], tmpYRange[1])) {
+            yLeftMin = tmpYRange[0];
+            yLeftMax = tmpYRange[1];
+        }
+        if (ChartInputDataStats.isYMinMaxDetected(tmpYRange[2], tmpYRange[3])) {
+            yRightMin = tmpYRange[2];
+            yRightMax = tmpYRange[3];
+        }
     }
 
     private void updateScalesAndMatrix() {
@@ -390,8 +400,8 @@ public class ChartDrawData {
         matrixRight.postTranslate(xToPixelHelper, yRightToPixelHelper);
     }
 
-    private boolean b1 = false;
-    private boolean b2 = false;
+//    private boolean b1 = false;
+//    private boolean b2 = false;
 
     private void updateLinesAndAxis() {
         if (!areaSet) {
@@ -920,6 +930,10 @@ public class ChartDrawData {
         return area.bottom - (y - yRightMin) * scaleYRight;
     }
 
+    public float pixelToYRight(float px) {
+        return (area.bottom - px) / scaleYRight + yRightMin;
+    }
+
     private boolean getIsMarksUpdating() {
         return (axisLineCount > 0) && ((xAxisTextCnv != null) || (yAxisTextCnv != null));
     }
@@ -970,25 +984,45 @@ public class ChartDrawData {
         }
     }
 
-    private final @NotNull YAxisMarksHelper yMarksHelper = new YAxisMarksHelper();
+    private final @NotNull YAxisMarksHelper yLeftMarksHelper = new YAxisMarksHelper();
+    private final @NotNull YAxisMarksHelper yRightMarksHelper = new YAxisMarksHelper();
 
     private void updateYAxisMarks() {
         if (BuildConfig.DEBUG && (yAxisMarks == null)) throw new AssertionError();
         if (BuildConfig.DEBUG && (yAxisTextCnv == null)) throw new AssertionError();
 
-        calcYAxisMarksHelper(yLeftMin, yLeftMax, yMarksHelper);
+        final boolean gotLeftAligned = inputDataStats.getVisibleLinesCount(false) != 0;
+        final boolean gotRightAligned = inputDataStats.getVisibleLinesCount(true) != 0;
 
+        calcYAxisMarksHelper(yLeftMin, yLeftMax, yLeftMarksHelper);
+        if (gotRightAligned) {
+            calcYAxisMarksHelper(yRightMin, yRightMax, yRightMarksHelper);
+        }
+        final @NotNull YAxisMarksHelper yMarksHelper = (!gotLeftAligned && gotRightAligned) ? yRightMarksHelper : yLeftMarksHelper;
         //Log.d("CDD", String.format("updateYAxisMarks: yLeftMin = %d, yLeftMax = %d, yLeftMarksHelper - %s", yLeftMin, yLeftMax, yMarksHelper));
 
         yAxisMarks.clear();
 
-        int i = yMarksHelper.startValue;
+        int mainValue = yMarksHelper.startValue;
+        int rightValue = yRightMarksHelper.startValue;
         for (float y = yMarksHelper.startPixel; y >= 0; y -= yMarksHelper.stepPixel) {
-            final String text = yAxisTextCnv.toText(i);
+            final String leftText = gotLeftAligned ? yAxisTextCnv.toText(mainValue) : null;
 
-            yAxisMarks.add(new AxisMark(y, text, null));
+            final String rightText;
+            if (gotRightAligned) {
+                // TODO: hack
+                if (gotLeftAligned) {
+                    rightValue = (int) pixelToYRight(y) / 100 * 100;
+                }
+                rightText = yAxisTextCnv.toText(rightValue);
+            } else {
+                rightText = null;
+            }
 
-            i += yMarksHelper.stepValue;
+            yAxisMarks.add(new AxisMark(y, leftText, rightText));
+
+            mainValue += yMarksHelper.stepValue;
+            rightValue += yRightMarksHelper.stepValue;
         }
     }
 
@@ -1076,10 +1110,10 @@ public class ChartDrawData {
 
     public static class AxisMark {
         private float position;
-        private @NotNull String text;
+        private @Nullable String text;
         private @Nullable String textRight;
 
-        public AxisMark(float position, @NotNull String text, @Nullable String textRegiht) {
+        public AxisMark(float position, @Nullable String text, @Nullable String textRegiht) {
             this.position = position;
             this.text = text;
             this.textRight = textRegiht;
@@ -1089,7 +1123,7 @@ public class ChartDrawData {
             return position;
         }
 
-        public @NotNull String getText() {
+        public @Nullable String getText() {
             return text;
         }
 

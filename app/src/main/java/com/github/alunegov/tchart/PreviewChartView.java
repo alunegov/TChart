@@ -137,6 +137,7 @@ public class PreviewChartView extends AbsChartView {
     @Override
     public void setYRange(int yLeftMin, int yLeftMax, int yRightMin, int yRightMax, boolean doUpdateAndInvalidate) {
         useCachedLines = false;
+
         super.setYRange(yLeftMin, yLeftMax, yRightMin, yRightMax, doUpdateAndInvalidate);
     }
 

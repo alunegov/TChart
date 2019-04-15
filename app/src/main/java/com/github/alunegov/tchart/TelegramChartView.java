@@ -37,6 +37,7 @@ public class TelegramChartView extends LinearLayout {
     private final @NotNull ValueAnimator lineVisibilityAnimator = new ValueAnimator();
     private int lineVisibilityAnimation_lineIndex;
     private boolean lineVisibilityAnimation_exceptLine;
+    private int lineVisibilityAnimation_stopState;
 
     private ChartInputDataStats inputDataStats;
 
@@ -158,10 +159,33 @@ public class TelegramChartView extends LinearLayout {
         //Log.v("TCV", String.format("left = %f, right = %f, swing = %f startZoneChangeAnimation", zoneLeftValue, zoneRightValue, zoneRightValue - zoneLeftValue));
 
         mainChartView.calcAnimationRanges(zoneLeftValue, zoneRightValue, tmpStartYRange, tmpStopYRange);
-        final PropertyValuesHolder yLeftMin = PropertyValuesHolder.ofInt("yLeftMin", tmpStartYRange[0], tmpStopYRange[0]);
-        final PropertyValuesHolder yLeftMax = PropertyValuesHolder.ofInt("yLeftMax", tmpStartYRange[1], tmpStopYRange[1]);
-        final PropertyValuesHolder yRightMin = PropertyValuesHolder.ofInt("yRightMin", tmpStartYRange[2], tmpStopYRange[2]);
-        final PropertyValuesHolder yRightMax = PropertyValuesHolder.ofInt("yRightMax", tmpStartYRange[3], tmpStopYRange[3]);
+
+        // оставляем мин/макс последней видимой линии
+        final PropertyValuesHolder yLeftMin;
+        final PropertyValuesHolder yLeftMax;
+        if (!ChartInputDataStats.isYMinMaxDetected(tmpStartYRange[0], tmpStartYRange[1])) {
+            yLeftMin = PropertyValuesHolder.ofInt("yLeftMin", tmpStopYRange[0], tmpStopYRange[0]);
+            yLeftMax = PropertyValuesHolder.ofInt("yLeftMax", tmpStopYRange[1], tmpStopYRange[1]);
+        } else if (!ChartInputDataStats.isYMinMaxDetected(tmpStopYRange[0], tmpStopYRange[1])) {
+            yLeftMin = PropertyValuesHolder.ofInt("yLeftMin", tmpStartYRange[0], tmpStartYRange[0]);
+            yLeftMax = PropertyValuesHolder.ofInt("yLeftMax", tmpStartYRange[1], tmpStartYRange[1]);
+        } else {
+            yLeftMin = PropertyValuesHolder.ofInt("yLeftMin", tmpStartYRange[0], tmpStopYRange[0]);
+            yLeftMax = PropertyValuesHolder.ofInt("yLeftMax", tmpStartYRange[1], tmpStopYRange[1]);
+        }
+
+        final PropertyValuesHolder yRightMin;
+        final PropertyValuesHolder yRightMax;
+        if (!ChartInputDataStats.isYMinMaxDetected(tmpStartYRange[2], tmpStartYRange[3])) {
+            yRightMin = PropertyValuesHolder.ofInt("yRightMin", tmpStopYRange[2], tmpStopYRange[2]);
+            yRightMax = PropertyValuesHolder.ofInt("yRightMax", tmpStopYRange[3], tmpStopYRange[3]);
+        } else if (!ChartInputDataStats.isYMinMaxDetected(tmpStopYRange[2], tmpStopYRange[3])) {
+            yRightMin = PropertyValuesHolder.ofInt("yRightMin", tmpStartYRange[2], tmpStartYRange[2]);
+            yRightMax = PropertyValuesHolder.ofInt("yRightMax", tmpStartYRange[3], tmpStartYRange[3]);
+        } else {
+            yRightMin = PropertyValuesHolder.ofInt("yRightMin", tmpStartYRange[2], tmpStopYRange[2]);
+            yRightMax = PropertyValuesHolder.ofInt("yRightMax", tmpStartYRange[3], tmpStopYRange[3]);
+        }
 
         zoneChangeAnimator.setValues(xl, xr, yLeftMin, yLeftMax, yRightMin, yRightMax);
         zoneChangeAnimator.start();
@@ -201,7 +225,23 @@ public class TelegramChartView extends LinearLayout {
         //mainChartView.updateLineVisibility(lineIndex, isChecked, true);
         //previewChartView.updateLineVisibility(lineIndex, isChecked, true);
 
-        lineVisibilityAnimator.cancel();
+        if (lineVisibilityAnimator.isRunning()) {
+            lineVisibilityAnimator.cancel();
+
+            // типа доводим анимацию видимости до конца, но только если следующая анимация для другого сигнала
+            if (lineIndex != lineVisibilityAnimation_lineIndex) {
+                inputDataStats.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                        lineVisibilityAnimation_stopState);
+
+                mainChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                        lineVisibilityAnimation_stopState, false, false);
+                previewChartView.updateLineVisibility(lineVisibilityAnimation_lineIndex, lineVisibilityAnimation_exceptLine,
+                        lineVisibilityAnimation_stopState, false, false);
+
+                // вроде ChartView.setYRange вызывать не нужно, он вызовется на первом шаге новой анимации и
+                // пересчитает всё от видимости сигналов из inputDataStats
+            }
+        }
 
         final int startLineVisibilityState;
         if (exceptLine) {
@@ -216,7 +256,6 @@ public class TelegramChartView extends LinearLayout {
         previewChartView.calcAnimationRanges(lineIndex, exceptLine, stopLineVisibilityState, tmpStartYRangePreview, tmpStopYRangePreview);
 
         // оставляем мин/макс последней видимой линии
-
         final PropertyValuesHolder yLeftMin_main;
         final PropertyValuesHolder yLeftMax_main;
         final PropertyValuesHolder yLeftMin_preview;
@@ -267,11 +306,9 @@ public class TelegramChartView extends LinearLayout {
 
         final PropertyValuesHolder lineVisibilityState = PropertyValuesHolder.ofInt("lineVisibilityState", startLineVisibilityState, stopLineVisibilityState);
 
-        // TODO: переход из/в состояние без графиков
-        // TODO: если нет изменения по Y, не нужно вызывать setYRange
-        //   (startYRange[0] == stopYRange[0]) && (startYRange[1] == stopYRange[1])
         lineVisibilityAnimation_lineIndex = lineIndex;
         lineVisibilityAnimation_exceptLine = exceptLine;
+        lineVisibilityAnimation_stopState = stopLineVisibilityState;
 
 //            t = SystemClock.elapsedRealtime();
 

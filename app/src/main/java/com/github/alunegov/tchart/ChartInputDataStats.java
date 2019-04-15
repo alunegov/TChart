@@ -70,6 +70,23 @@ public class ChartInputDataStats {
         return visibleLinesCount;
     }
 
+    // количество видимых линий (с не нулевым состоянием) с привязкой к оси
+    public int getVisibleLinesCount(boolean rightAlign) {
+        int visibleLinesCount = 0;
+        for (int j = 0; j < inputData.LinesValues.length; j++) {
+            if (linesRightAlign[j] != rightAlign) {
+                continue;
+            }
+            if (linesVisibilityState[j] == VISIBILITY_STATE_OFF) {
+                continue;
+            }
+
+            visibleLinesCount++;
+        }
+
+        return visibleLinesCount;
+    }
+
     public @NotNull boolean[] getLinesRightAlign() {
         return linesRightAlign;
     }
@@ -88,10 +105,16 @@ public class ChartInputDataStats {
                 continue;
             }
 
-            final float lineK = (float) linesVisibilityState[j] / VISIBILITY_STATE_ON;
+            if (linesVisibilityState[j] == VISIBILITY_STATE_ON) {
+                for (int i = 0; i < inputData.XValues.length; i++) {
+                    sum[i] += inputData.LinesValues[j][i];
+                }
+            } else {
+                final float lineK = (float) linesVisibilityState[j] / VISIBILITY_STATE_ON;
 
-            for (int i = 0; i < inputData.XValues.length; i++) {
-                sum[i] += Math.round(inputData.LinesValues[j][i] * lineK);  // TODO: float?
+                for (int i = 0; i < inputData.XValues.length; i++) {
+                    sum[i] += (int) (inputData.LinesValues[j][i] * lineK);
+                }
             }
         }
     }
