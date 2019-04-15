@@ -5,13 +5,11 @@ import android.graphics.*;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
-
 import android.view.MotionEvent;
+
 import org.jetbrains.annotations.NotNull;
 
 public class CursorPopupView {
-    // cursor_next - #D2D5D7
-
     private static final int MIN_WIDTH_DP = 150;
 
     private static final int PADDING_DP = 10;
@@ -28,6 +26,8 @@ public class CursorPopupView {
 
     // #E2E5E7, #232E3D
     private static final int BORDER_COLOR = Color.parseColor("#E2E5E7");
+
+    private static final int CURSOR_NEXT_COLOR = Color.parseColor("#D2D5D7");
 
     private static final int TEXT_COLOR = Color.parseColor("#FFFFFF");
 
@@ -52,6 +52,7 @@ public class CursorPopupView {
     private Paint backgroundPaint;
     private Paint borderPaint;
     private Paint datePaint;
+    private Paint cursorNextPaint;
     private Paint lineNamePaint;
     private Paint lineValuePaint;
     private Paint linePercentPaint;
@@ -99,6 +100,11 @@ public class CursorPopupView {
         datePaint.setFakeBoldText(true);
         datePaint.setTextSize(textSize);
 
+        cursorNextPaint = new Paint(datePaint);
+        cursorNextPaint.setColor(CURSOR_NEXT_COLOR);
+        cursorNextPaint.setStrokeWidth(3);
+        cursorNextPaint.setStyle(Paint.Style.STROKE);
+
         lineNamePaint = new Paint(datePaint);
         lineNamePaint.setFakeBoldText(false);
 
@@ -111,7 +117,7 @@ public class CursorPopupView {
     }
 
     public void onLayout() {
-        float minW = datePaint.measureText(date);
+        float minW = datePaint.measureText(date) + textHeight;
 
         //Log.d("CPV", String.format("onLayout: [0].state = %d, [1].state = %d", linesValues[0].state, linesValues[1].state));
         //Log.d("CPV", String.format("onLayout: [0].percent = %s, [1].percent = %s", linesValues[0].percent, linesValues[1].percent));
@@ -176,6 +182,22 @@ public class CursorPopupView {
         float y = top + padding + textHeight;
 
         canvas.drawText(date, left + padding, y, datePaint);
+
+        // иконка ">"
+        canvas.drawLine(
+                left + width - padding - textHeight / 2f,
+                y,
+                left + width - padding,
+                y - textHeight / 2f,
+                cursorNextPaint
+        );
+        canvas.drawLine(
+                left + width - padding,
+                y - textHeight / 2f,
+                left + width - padding - textHeight / 2f,
+                y - textHeight,
+                cursorNextPaint
+        );
 
         y += textHeight + horizontalMargin;
 
