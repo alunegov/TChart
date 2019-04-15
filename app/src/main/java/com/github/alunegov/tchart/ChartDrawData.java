@@ -252,12 +252,12 @@ public class ChartDrawData {
 
             tmpStackedSum += inputData.LinesValues[j][cursorIndex] * lineK;
 
-            cursorPath.addRect(
+            pathAddRectWorkaround(
+                    cursorPath,
                     inputData.XValues[cursorIndex] - halfRectWidth,
                     tmpStackedSum,
                     inputData.XValues[cursorIndex] + halfRectWidth,
-                    prevMin,
-                    Path.Direction.CW
+                    prevMin
             );
 
             cursorPath.transform(matrixLeft);
@@ -299,7 +299,7 @@ public class ChartDrawData {
         // TODO: добавлять к минимуму не просто "часть размаха", а так, чтобы первая линия оцифровки была в "нулевом пикселе"
         if (mYRangeEnlarging && (ChartInputDataStats.isYMinMaxDetected(tmpYLeftMinMax) || ChartInputDataStats.isYMinMaxDetected(tmpYRightMinMax))) {
             if (ChartInputDataStats.isYMinMaxDetected(tmpYLeftMinMax)) {
-                final int yLeftDelta = Math.round(0.05f * (range[1] - range[0]));
+                final int yLeftDelta = Math.round(0.06f * (range[1] - range[0]));
                 if (range[0] != 0) {
                     range[0] -= yLeftDelta;
                 }
@@ -307,7 +307,7 @@ public class ChartDrawData {
             }
 
             if (ChartInputDataStats.isYMinMaxDetected(tmpYRightMinMax)) {
-                final int yRightDelta = Math.round(0.05f * (range[3] - range[2]));
+                final int yRightDelta = Math.round(0.06f * (range[3] - range[2]));
                 if (range[2] != 0) {
                     range[2] -= yRightDelta;
                 }
@@ -667,12 +667,12 @@ public class ChartDrawData {
 
             // cursor
             if (prevCursorIndex != AbsChartView.NO_CURSOR) {
-                cursorPath.addRect(
+                pathAddRectWorkaround(
+                        cursorPath,
                         inputData.XValues[prevCursorIndex] - halfRectWidth,
                         tmpStackedSum[prevCursorIndex],
                         inputData.XValues[prevCursorIndex] + halfRectWidth,
-                        prevMin,
-                        Path.Direction.CW
+                        prevMin
                 );
 
                 cursorPath.transform(matrixLeft);
@@ -852,7 +852,7 @@ public class ChartDrawData {
                         inputData.XValues[xRightIndex],
                         prevPercMin
                 );
-                // _
+                // bottom _
                 linePath.lineTo(
                         inputData.XValues[xLeftIndex],
                         prevPercMin
@@ -860,12 +860,12 @@ public class ChartDrawData {
                 // left |
                 linePath.close();
             } else {
-                linePath.addRect(
+                pathAddRectWorkaround(
+                        linePath,
                         inputData.XValues[xLeftIndex],
                         currPercMin,
                         inputData.XValues[xRightIndex],
-                        prevPercMin,
-                        Path.Direction.CW
+                        prevPercMin
                 );
             }
 
@@ -873,6 +873,19 @@ public class ChartDrawData {
 
             prevPercMin = currPercMin;
         }
+    }
+
+    // addRect глючит на HUAWEI v16
+    private void pathAddRectWorkaround(@NotNull Path path, float left, float top, float right, float bottom) {
+        path.moveTo(left, top);
+        // top _
+        path.lineTo(right, top);
+        // right |
+        path.lineTo(right, bottom);
+        // bottom _
+        path.lineTo(left, bottom);
+        // left |
+        path.close();
     }
 
     private @NotNull float[] getTmpStackedSum() {
