@@ -7,7 +7,7 @@
     <item
         android:id="@+id/mode_menu"
         android:icon="?attr/mode_icon"
-        android:title="Mode"
+        android:title="@string/mode_menu"
         app:showAsAction="always"
         />
 

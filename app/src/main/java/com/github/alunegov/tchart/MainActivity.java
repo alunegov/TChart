@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         };
 
         try {
-/*            final String json = ChartUtils.readStreamToString(getResources().openRawResource(R.raw.chart_data), CHART_DATA_CHARSET);
+/*            final String json = ChartUtils.readStreamToString(getAssets().open("chart_data.json"), CHART_DATA_CHARSET);
             final List<ChartInputData> charts = ChartInputDataMapper.load(json, colorParser);*/
 
             final List<ChartInputData> charts = ChartInputDataMapper.load(resourceLoader, colorParser);

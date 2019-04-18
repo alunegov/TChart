@@ -1,5 +1,6 @@
 package com.github.alunegov.tchart;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
@@ -195,6 +196,7 @@ public class PreviewChartView extends AbsChartView {
     }
 
     @Override
+    @SuppressLint("ClickableViewAccessibility")
     public boolean onTouchEvent(MotionEvent event) {
         if (drawData == null) {
             return true;

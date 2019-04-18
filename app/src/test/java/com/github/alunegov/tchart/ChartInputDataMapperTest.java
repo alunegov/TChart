@@ -23,7 +23,7 @@ public class ChartInputDataMapperTest {
         ChartInputDataMapper.ColorParser colorParserMock = Mockito.mock(ChartInputDataMapper.ColorParser.class);
         when(colorParserMock.parseColor(anyString())).thenReturn(FAKE_COLOR);
 
-        File jsonFile = new File(".\\src\\main\\res\\raw\\", "chart_data.json");
+        File jsonFile = new File(".\\src\\main\\assets\\", "chart_data.json");
         String json = ChartUtils.readFileToString(jsonFile, "UTF8");
 
         List<ChartInputData> l = ChartInputDataMapper.load(json, colorParserMock);

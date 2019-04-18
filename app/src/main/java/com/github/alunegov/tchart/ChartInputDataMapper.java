@@ -3,10 +3,7 @@ package com.github.alunegov.tchart;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -111,7 +108,7 @@ public class ChartInputDataMapper {
                     res.XValues[k] = jLine.getLong(k + 1);
                 }
             } else {
-                final ChartInputData.LineType lineType = ChartInputData.LineType.valueOf(lineTypeAsStr.toUpperCase());
+                final ChartInputData.LineType lineType = ChartInputData.LineType.valueOf(lineTypeAsStr.toUpperCase(Locale.US));
                 if (lineType != linesType) {
                     throw new JSONException("unsupported line type");
                 }
@@ -149,7 +146,7 @@ public class ChartInputDataMapper {
             final String lineId = linesTypesIter.next();
             final String lineTypeAsStr = jTypes.getString(lineId);
             if (!lineTypeAsStr.equals("x")) {
-                linesType = ChartInputData.LineType.valueOf(lineTypeAsStr.toUpperCase());
+                linesType = ChartInputData.LineType.valueOf(lineTypeAsStr.toUpperCase(Locale.US));
                 break;
             }
         }
