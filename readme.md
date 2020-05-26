@@ -1,15 +1,47 @@
-# TChart
+# Android Chart Competition
 
-## Отзыв на приложение [первого тура](1)
+## Task
 
-> К сожалению, приложение не полностью соответствует рекомендованному дизайну, в особенности в том, что касается плашки с данными о выбранной точке. Активная зона кнопок в фильтрах ограничена чекбоксами. Низкая скорость работы приложения на Samsung Galaxy S5.
-> Крайние значения дат обрезаются на графиках.
+The goal of this contest is to develop software for showing charts based on provided input data. Contestants were not allowed to use specialized charting libraries.
 
-### todo
+### Stage 1 mockups
 
-1. Приложение не полностью соответствует рекомендованному дизайну, в особенности в том, что касается плашки с данными о выбранной точке
-2. Активная зона кнопок в фильтрах ограничена чекбоксами - fixed in [ead8465](commit/ead84651ca5dc9345fa8a401acf41944d992d98b)
-3. Низкая скорость работы приложения на Samsung Galaxy S5
-4. Крайние значения дат обрезаются на графиках
+<p align="center">
+  <img src="docs/Android_Chart.png" width="200" />
+  <img src="docs/Android_Chart_Night.png" width="200" />
+</p>
 
-[1]: releases/tag/v1.0
+### Stage 2 mockups
+
+<p align="center">
+  <img src="docs/Android_1.png" width="200" />
+  <img src="docs/Android_3.png" width="200" />
+  <img src="docs/Android_5.png" width="200" />
+  <img src="docs/Android_7.png" width="200" />
+  <img src="docs/Android_9.png" width="200" />
+</p>
+
+## Result
+
+### Issues from judges on [Stage 1](1)
+
+```
+К сожалению, приложение не полностью соответствует рекомендованному дизайну, в особенности в том, что касается плашки с данными о выбранной точке. Активная зона кнопок в фильтрах ограничена чекбоксами. Низкая скорость работы приложения на Samsung Galaxy S5.
+
+Крайние значения дат обрезаются на графиках.
+```
+
+### Issues from judges on [Stage 2](2)
+
+```
+– Overall poor performance.
+– The app is slow when filtering, scaling and scrolling graphs.
+– The data resets when changing themes.
+
+Slow when filtering graph #3.
+
+Horizontal scrolling is applied with noticeable lag.
+```
+
+[1]: releases/tag/Stage_1
+[2]: releases/tag/Stage_2
